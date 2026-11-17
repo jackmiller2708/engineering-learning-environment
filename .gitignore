@@ -1,0 +1,18 @@
+# Local Claude Code configuration (machine-specific: proxy URL, hook paths, process state)
+.claude/settings.local.json
+.claude/.headroom_wrap_*
+
+# Dependencies
+node_modules/
+
+# Angular build and cache
+dist/
+.angular/
+coverage/
+
+# Rust / Tauri build outputs
+target/
+src-tauri/gen/
+
+# Logs
+*.log
