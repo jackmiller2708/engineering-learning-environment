@@ -1,0 +1,36 @@
+@if (labs().length > 0) {
+  <ul class="labs">
+    <li class="row head" aria-hidden="true">
+      <span>Name</span><span>Created ({{ offset }})</span><span>ID</span><span></span>
+    </li>
+    @for (lab of labs(); track lab.id) {
+      <li>
+        <a class="row" [routerLink]="['/workspace', lab.id]">
+          <span class="nm" dir="auto" [title]="lab.name">@if (lab.id === newId()) {<span class="tag">New</span>}{{ lab.name }}</span>
+          <time class="when" [attr.datetime]="lab.createdAt" [title]="utc(lab.createdAt)">{{ local(lab.createdAt) }}</time>
+          <span class="idc">{{ shortId(lab.id) }}</span>
+          <span class="open" aria-hidden="true">Open lab</span>
+        </a>
+      </li>
+    }
+  </ul>
+}
+@if (unopenable().length > 0) {
+  <h3 class="grouphead" id="bad-heading">Cannot be opened</h3>
+  <p class="grouphelp">The application cannot repair or remove these labs.</p>
+  <ul class="labs" aria-labelledby="bad-heading">
+    @for (entry of unopenable(); track entry.id) {
+      <li class="bad">
+        <span class="nm">
+          <svg class="ico" viewBox="0 0 14 14" aria-hidden="true" focusable="false"><circle cx="7" cy="7" r="5.5" fill="none" stroke="currentColor" stroke-width="1.5" /><path d="M3.2 10.8 10.8 3.2" stroke="currentColor" stroke-width="1.5" /></svg>
+          Cannot be opened
+        </span>
+        <span class="idc">{{ shortId(entry.id) }}</span>
+        <span class="why">{{ reason(entry.kind) }}</span>
+        @if (entry.kind === 'entry_unreadable') {
+          <button type="button" class="btn" (click)="retry.emit()">Try again</button>
+        }
+      </li>
+    }
+  </ul>
+}

@@ -1,0 +1,103 @@
+:host {
+  display: block;
+}
+
+.create {
+  margin-block-start: 24px;
+  padding: 12px 14px;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+}
+
+h2 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+
+.field {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.grow {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+label {
+  margin-block-end: 4px;
+}
+
+input {
+  inline-size: 100%;
+  block-size: 36px;
+  padding: 0 10px;
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  border-radius: 4px;
+}
+
+input[aria-invalid='true'] {
+  border-color: var(--danger);
+  box-shadow: inset 0 0 0 1px var(--danger);
+}
+
+.hint {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.err {
+  margin: 6px 0 0;
+  color: var(--danger);
+}
+
+.btn {
+  block-size: 36px;
+  padding: 0 14px;
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  border-radius: 4px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.btn.primary {
+  margin-block-start: 22px; /* lines the button up with the field, below the label */
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.status:empty {
+  display: none;
+}
+
+.ok {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  background: var(--new-tint);
+  border-radius: 4px;
+}
+
+/* Below 900 px (DESIGN_SPEC 8): the button wraps under the field. */
+@media (max-width: 899px) {
+  .field {
+    flex-wrap: wrap;
+  }
+
+  .grow {
+    flex-basis: 100%;
+  }
+
+  .btn.primary {
+    margin-block-start: 0;
+  }
+}

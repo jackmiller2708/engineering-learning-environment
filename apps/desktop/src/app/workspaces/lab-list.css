@@ -1,0 +1,170 @@
+:host {
+  display: block;
+}
+
+.labs {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow: hidden;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 10.5rem 5.25rem 4.5rem;
+  align-items: center;
+  gap: 16px;
+  min-block-size: 44px;
+  padding: 0 14px;
+}
+
+li + li > .row,
+li + li.bad {
+  border-block-start: 1px solid var(--rule);
+}
+
+.head {
+  min-block-size: 30px;
+  background: var(--raised);
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+a.row {
+  padding-block: 8px;
+  color: inherit;
+  text-decoration: none;
+}
+
+a.row:hover {
+  background: var(--raised);
+}
+
+a.row:focus-visible {
+  outline-offset: -2px;
+}
+
+.nm {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  /* two lines, then clamp; the full name is in the title */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  unicode-bidi: plaintext;
+}
+
+.tag {
+  display: inline-block;
+  margin-inline-end: 8px;
+  padding: 1px 6px;
+  background: var(--new-tint);
+  border-radius: 3px;
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+  vertical-align: 1px;
+}
+
+.when {
+  color: var(--muted);
+}
+
+.idc {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+}
+
+.open {
+  color: var(--accent);
+  font-weight: 600;
+  text-align: end;
+}
+
+.grouphead {
+  margin: 20px 0 6px;
+  color: var(--danger);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.grouphelp {
+  margin: -2px 0 6px;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.bad {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 16px;
+  padding: 8px 14px;
+  background: var(--danger-tint);
+}
+
+.bad .nm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--danger);
+}
+
+.bad .why {
+  grid-column: 1 / -1;
+}
+
+.bad .btn {
+  grid-column: 1 / -1;
+  justify-self: start;
+  margin-block-start: 4px;
+  block-size: 36px;
+  padding: 0 14px;
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.ico {
+  inline-size: 14px;
+  block-size: 14px;
+  flex: none;
+}
+
+/* Below 900 px (DESIGN_SPEC 8): two lines per row. Name, then created and ID; "Open lab" sits at the end. */
+@media (max-width: 899px) {
+  .row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 2px 12px;
+    padding-block: 8px;
+  }
+
+  .head {
+    display: none;
+  }
+
+  .nm {
+    grid-column: 1 / 3;
+  }
+
+  .when {
+    grid-column: 1;
+  }
+
+  .idc {
+    grid-column: 2;
+  }
+
+  .open {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    align-self: center;
+  }
+}

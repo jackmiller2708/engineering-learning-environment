@@ -1,0 +1,46 @@
+<main [attr.aria-busy]="view().kind === 'loading'">
+  @let v = view();
+  @if (v.kind === 'ready') {
+    <div class="labbar">
+      <h1 #heading tabindex="-1" dir="auto" [title]="v.workspace.name">{{ v.workspace.name }}</h1>
+      <span class="meta">Created {{ created(v.workspace.createdAt) }}</span>
+    </div>
+    <section class="benchwrap" aria-label="Bench">
+      <div class="bench-note">
+        <strong>The bench is not available yet.</strong>
+        <span>This lab is saved on this computer. Nothing has been added to it.</span>
+      </div>
+      <dl class="facts">
+        <div><dt>World</dt><dd>{{ world }}</dd></div>
+        <div><dt>Lab</dt><dd class="name" dir="auto">{{ v.workspace.name }}</dd></div>
+        <div>
+          <dt>Created</dt>
+          <dd>
+            <time [attr.datetime]="v.workspace.createdAt">{{ created(v.workspace.createdAt) }}</time><br />
+            <span class="mono">{{ utc(v.workspace.createdAt) }}</span>
+          </dd>
+        </div>
+        <div><dt>ID</dt><dd class="mono">{{ v.workspace.id }}</dd></div>
+      </dl>
+    </section>
+  } @else if (v.kind === 'problem') {
+    @let p = describe(v.state);
+    <div class="fullpage">
+      <h1 #heading tabindex="-1">{{ p.heading }}</h1>
+      @if (v.state.kind === 'failed') {
+        <div class="problem" role="alert">
+          <p>{{ p.body }}</p>
+          <button type="button" class="btn" (click)="retry()">Try again</button>
+        </div>
+      } @else {
+        @if (p.body) {
+          <p>{{ p.body }}</p>
+        }
+        @if (p.retry) {
+          <p><button type="button" class="btn" (click)="retry()">Try again</button></p>
+        }
+      }
+      <p><a routerLink="/worlds">Go to Worlds</a></p>
+    </div>
+  }
+</main>

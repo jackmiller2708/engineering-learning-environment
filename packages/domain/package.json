@@ -1,0 +1,21 @@
+{
+  "name": "@ele/domain",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Pure TypeScript domain logic. No Angular, Tauri, DOM or Node dependency.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.2",
+    "vitest": "^4.0.8"
+  },
+  "dependencies": {
+    "unicode-case-folding": "1.1.2"
+  }
+}

@@ -1,0 +1,843 @@
+{
+ "description": "Workspace name rules (M1). Every case states its expected outcome. Shared by the TypeScript domain tests and, later, the Rust implementation. Strings are written with \\u escapes; a JSON parser yields the exact code points.",
+ "rules": {
+  "maxScalarValues": 64,
+  "trimmedWhiteSpaceCodePoints": [
+   9,
+   10,
+   11,
+   12,
+   13,
+   32,
+   133,
+   160,
+   5760,
+   8192,
+   8193,
+   8194,
+   8195,
+   8196,
+   8197,
+   8198,
+   8199,
+   8200,
+   8201,
+   8202,
+   8232,
+   8233,
+   8239,
+   8287,
+   12288
+  ],
+  "controlCodePoints": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13,
+   14,
+   15,
+   16,
+   17,
+   18,
+   19,
+   20,
+   21,
+   22,
+   23,
+   24,
+   25,
+   26,
+   27,
+   28,
+   29,
+   30,
+   31,
+   127,
+   128,
+   129,
+   130,
+   131,
+   132,
+   133,
+   134,
+   135,
+   136,
+   137,
+   138,
+   139,
+   140,
+   141,
+   142,
+   143,
+   144,
+   145,
+   146,
+   147,
+   148,
+   149,
+   150,
+   151,
+   152,
+   153,
+   154,
+   155,
+   156,
+   157,
+   158,
+   159
+  ],
+  "checkOrder": [
+   "malformed_utf16",
+   "trim",
+   "empty",
+   "control_character",
+   "too_long"
+  ],
+  "caseFolding": "Unicode Default Case Folding, non-Turkic (CaseFolding.txt statuses C and F), applied to the stored name for comparison only. No normalization. See casefold-unicode-18.0.0.json.",
+  "unrepresentableInRust": "Cases with representableInRustString=false give inputUtf16CodeUnits instead of input, because unpaired surrogates cannot be written as portable JSON text. They contain unpaired surrogates. A Rust String cannot hold them, and serde_json rejects them while decoding. Rust tests skip them or assert rejection at decoding."
+ },
+ "validation": [
+  {
+   "id": "plain",
+   "expect": {
+    "ok": true,
+    "name": "Alpha"
+   },
+   "note": "ordinary name",
+   "input": "Alpha"
+  },
+  {
+   "id": "empty",
+   "expect": {
+    "ok": false,
+    "error": "empty"
+   },
+   "note": "empty string",
+   "input": ""
+  },
+  {
+   "id": "spaces-only",
+   "expect": {
+    "ok": false,
+    "error": "empty"
+   },
+   "note": "ASCII spaces only",
+   "input": "   "
+  },
+  {
+   "id": "trim-both-edges",
+   "expect": {
+    "ok": true,
+    "name": "Alpha"
+   },
+   "note": "stored name is the trimmed value",
+   "input": "  Alpha  "
+  },
+  {
+   "id": "trim-ascii-ws-and-nel",
+   "expect": {
+    "ok": true,
+    "name": "Alpha"
+   },
+   "note": "TAB LF VT FF CR SPACE and NEL are White_Space and are trimmed",
+   "input": "\t\n\u000b\f\r Alpha \u0085"
+  },
+  {
+   "id": "trim-nbsp-and-ideographic",
+   "expect": {
+    "ok": true,
+    "name": "Alpha"
+   },
+   "note": "NBSP and IDEOGRAPHIC SPACE are trimmed",
+   "input": "\u00a0\u3000Alpha\u3000\u00a0"
+  },
+  {
+   "id": "trim-line-separators",
+   "expect": {
+    "ok": true,
+    "name": "Alpha"
+   },
+   "note": "LINE SEPARATOR and PARAGRAPH SEPARATOR are White_Space and are trimmed",
+   "input": "\u2028Alpha\u2029"
+  },
+  {
+   "id": "zwsp-not-whitespace",
+   "expect": {
+    "ok": true,
+    "name": "\u200bAlpha"
+   },
+   "note": "ZERO WIDTH SPACE is Cf, not White_Space: kept",
+   "input": "\u200bAlpha"
+  },
+  {
+   "id": "zwsp-alone-not-empty",
+   "expect": {
+    "ok": true,
+    "name": "\u200b"
+   },
+   "note": "ZERO WIDTH SPACE alone is not empty",
+   "input": "\u200b"
+  },
+  {
+   "id": "bom-not-whitespace",
+   "expect": {
+    "ok": true,
+    "name": "\ufeffAlpha"
+   },
+   "note": "ZWNBSP / BOM U+FEFF is not White_Space (JS trim would remove it): kept",
+   "input": "\ufeffAlpha"
+  },
+  {
+   "id": "mongolian-vowel-separator-not-whitespace",
+   "expect": {
+    "ok": true,
+    "name": "\u180eAlpha"
+   },
+   "note": "U+180E is Cf since Unicode 6.3: kept",
+   "input": "\u180eAlpha"
+  },
+  {
+   "id": "interior-spaces-kept",
+   "expect": {
+    "ok": true,
+    "name": "Alpha  Beta"
+   },
+   "note": "interior whitespace is preserved",
+   "input": "Alpha  Beta"
+  },
+  {
+   "id": "interior-nbsp-kept",
+   "expect": {
+    "ok": true,
+    "name": "A\u00a0B"
+   },
+   "note": "NBSP inside is White_Space but not Cc: kept",
+   "input": "A\u00a0B"
+  },
+  {
+   "id": "interior-control-0000",
+   "expect": {
+    "ok": false,
+    "error": "control_character"
+   },
+   "note": "U+0000 is Cc inside the name",
+   "input": "A\u0000B"
+  },
+  {
+   "id": "interior-control-0001",
+   "expect": {
+    "ok": false,
+    "error": "control_character"
+   },
+   "note": "U+0001 is Cc inside the name",
+   "input": "A\u0001B"
+  },
+  {
+   "id": "interior-control-0009",
+   "expect": {
+    "ok": false,
+    "error": "control_character"
+   },
+   "note": "U+0009 is Cc inside the name",
+   "input": "A\tB"
+  },
+  {
+   "id": "interior-control-000a",
+   "expect": {
+    "ok": false,
+    "error": "control_character"
+   },
+   "note": "U+000A is Cc inside the name",
+   "input": "A\nB"
+  },
+  {
+   "id": "interior-control-001f",
+   "expect": {
+    "ok": false,
+    "error": "control_character"
+   },
+   "note": "U+001F is Cc inside the name",
+   "input": "A\u001fB"
+  },
+  {
+   "id": "interior-control-007f",
+   "expect": {
+    "ok": false,
+    "error": "control_character"
+   },
+   "note": "U+007F is Cc inside the name",
+   "input": "A\u007fB"
+  },
+  {
+   "id": "interior-control-0080",
+   "expect": {
+    "ok": false,
+    "error": "control_character"
+   },
+   "note": "U+0080 is Cc inside the name",
+   "input": "A\u0080B"
+  },
+  {
+   "id": "interior-control-0085",
+   "expect": {
+    "ok": false,
+    "error": "control_character"
+   },
+   "note": "U+0085 is Cc inside the name",
+   "input": "A\u0085B"
+  },
+  {
+   "id": "interior-control-009f",
+   "expect": {
+    "ok": false,
+    "error": "control_character"
+   },
+   "note": "U+009F is Cc inside the name",
+   "input": "A\u009fB"
+  },
+  {
+   "id": "control-only",
+   "expect": {
+    "ok": false,
+    "error": "control_character"
+   },
+   "note": "a Cc character is not White_Space, so the name is not empty but invalid",
+   "input": "\u0001"
+  },
+  {
+   "id": "c1-boundary-a0-allowed",
+   "expect": {
+    "ok": true,
+    "name": "A\u00a0B"
+   },
+   "note": "U+00A0 is the first code point after the Cc range: allowed",
+   "input": "A\u00a0B"
+  },
+  {
+   "id": "max-64-ascii",
+   "expect": {
+    "ok": true,
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+   },
+   "note": "exactly 64 scalar values",
+   "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  {
+   "id": "over-65-ascii",
+   "expect": {
+    "ok": false,
+    "error": "too_long"
+   },
+   "note": "65 scalar values",
+   "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  {
+   "id": "max-64-emoji",
+   "expect": {
+    "ok": true,
+    "name": "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00"
+   },
+   "note": "64 supplementary-plane scalars (128 UTF-16 code units)",
+   "input": "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00"
+  },
+  {
+   "id": "over-65-emoji",
+   "expect": {
+    "ok": false,
+    "error": "too_long"
+   },
+   "note": "65 supplementary-plane scalars",
+   "input": "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00"
+  },
+  {
+   "id": "max-combining",
+   "expect": {
+    "ok": true,
+    "name": "e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301"
+   },
+   "note": "combining marks count as separate scalars: 64",
+   "input": "e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301"
+  },
+  {
+   "id": "over-combining",
+   "expect": {
+    "ok": false,
+    "error": "too_long"
+   },
+   "note": "66 scalars",
+   "input": "e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301"
+  },
+  {
+   "id": "length-after-trim",
+   "expect": {
+    "ok": true,
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+   },
+   "note": "trimming happens before the length check",
+   "input": " aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa "
+  },
+  {
+   "id": "lone-high-surrogate",
+   "expect": {
+    "ok": false,
+    "error": "malformed_utf16"
+   },
+   "note": "unpaired high surrogate",
+   "inputUtf16CodeUnits": [
+    55296
+   ],
+   "representableInRustString": false
+  },
+  {
+   "id": "lone-low-surrogate",
+   "expect": {
+    "ok": false,
+    "error": "malformed_utf16"
+   },
+   "note": "unpaired low surrogate",
+   "inputUtf16CodeUnits": [
+    97,
+    56320,
+    98
+   ],
+   "representableInRustString": false
+  },
+  {
+   "id": "reversed-surrogates",
+   "expect": {
+    "ok": false,
+    "error": "malformed_utf16"
+   },
+   "note": "low before high",
+   "inputUtf16CodeUnits": [
+    56832,
+    55357
+   ],
+   "representableInRustString": false
+  },
+  {
+   "id": "high-surrogate-at-end",
+   "expect": {
+    "ok": false,
+    "error": "malformed_utf16"
+   },
+   "note": "truncated pair at the end",
+   "inputUtf16CodeUnits": [
+    65,
+    108,
+    112,
+    104,
+    97,
+    55357
+   ],
+   "representableInRustString": false
+  },
+  {
+   "id": "valid-surrogate-pair",
+   "expect": {
+    "ok": true,
+    "name": "\ud83d\ude00"
+   },
+   "note": "a well-formed pair is one scalar value",
+   "input": "\ud83d\ude00"
+  },
+  {
+   "id": "malformed-before-length",
+   "expect": {
+    "ok": false,
+    "error": "malformed_utf16"
+   },
+   "note": "precedence: malformed_utf16 is reported before too_long",
+   "inputUtf16CodeUnits": [
+    55296,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97,
+    97
+   ],
+   "representableInRustString": false
+  },
+  {
+   "id": "control-before-length",
+   "expect": {
+    "ok": false,
+    "error": "control_character"
+   },
+   "note": "precedence: control_character is reported before too_long",
+   "input": "\u0001aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  {
+   "id": "case-preserved",
+   "expect": {
+    "ok": true,
+    "name": "\u00c4LPHA mIxEd"
+   },
+   "note": "spelling and capitalization are stored as given",
+   "input": "\u00c4LPHA mIxEd"
+  },
+  {
+   "id": "no-normalization-nfc",
+   "expect": {
+    "ok": true,
+    "name": "caf\u00e9"
+   },
+   "note": "NFC is stored unchanged",
+   "input": "caf\u00e9"
+  },
+  {
+   "id": "no-normalization-nfd",
+   "expect": {
+    "ok": true,
+    "name": "cafe\u0301"
+   },
+   "note": "NFD is stored unchanged",
+   "input": "cafe\u0301"
+  }
+ ],
+ "storedNames": [
+  {
+   "id": "stored-ok",
+   "input": "Alpha",
+   "expect": {
+    "ok": true,
+    "name": "Alpha"
+   }
+  },
+  {
+   "id": "stored-leading-space",
+   "input": " Alpha",
+   "expect": {
+    "ok": false,
+    "error": "not_trimmed"
+   }
+  },
+  {
+   "id": "stored-trailing-space",
+   "input": "Alpha ",
+   "expect": {
+    "ok": false,
+    "error": "not_trimmed"
+   }
+  },
+  {
+   "id": "stored-leading-nel",
+   "input": "\u0085Alpha",
+   "expect": {
+    "ok": false,
+    "error": "not_trimmed"
+   }
+  },
+  {
+   "id": "stored-empty",
+   "input": "",
+   "expect": {
+    "ok": false,
+    "error": "empty"
+   }
+  },
+  {
+   "id": "stored-spaces-only",
+   "input": "   ",
+   "expect": {
+    "ok": false,
+    "error": "empty"
+   }
+  },
+  {
+   "id": "stored-control",
+   "input": "A\tB",
+   "expect": {
+    "ok": false,
+    "error": "control_character"
+   }
+  },
+  {
+   "id": "stored-too-long",
+   "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "expect": {
+    "ok": false,
+    "error": "too_long"
+   }
+  },
+  {
+   "id": "stored-zwsp-kept",
+   "input": "\u200bA",
+   "expect": {
+    "ok": true,
+    "name": "\u200bA"
+   }
+  }
+ ],
+ "comparison": [
+  {
+   "id": "ascii-case",
+   "a": "Alpha",
+   "b": "alpha",
+   "duplicate": true,
+   "note": "ASCII case"
+  },
+  {
+   "id": "sharp-s",
+   "a": "Stra\u00dfe",
+   "b": "STRASSE",
+   "duplicate": true,
+   "note": "U+00DF folds to ss (status F)"
+  },
+  {
+   "id": "capital-sharp-s",
+   "a": "\u1e9e",
+   "b": "ss",
+   "duplicate": true,
+   "note": "U+1E9E folds to ss (status F)"
+  },
+  {
+   "id": "ligature-ffi",
+   "a": "\ufb03",
+   "b": "ffi",
+   "duplicate": true,
+   "note": "U+FB03 folds to ffi (status F)"
+  },
+  {
+   "id": "greek-final-sigma",
+   "a": "\u03c3",
+   "b": "\u03c2",
+   "duplicate": true,
+   "note": "final sigma folds to sigma (status C)"
+  },
+  {
+   "id": "greek-capital-sigma",
+   "a": "\u03a3",
+   "b": "\u03c2",
+   "duplicate": true,
+   "note": "capital sigma folds to sigma"
+  },
+  {
+   "id": "greek-word",
+   "a": "\u039f\u0394\u03a5\u03a3\u03a3\u0395\u03a5\u03a3",
+   "b": "\u03bf\u03b4\u03c5\u03c3\u03c3\u03b5\u03c5\u03c2",
+   "duplicate": true,
+   "note": "final-sigma context does not matter for folding"
+  },
+  {
+   "id": "cherokee",
+   "a": "\uab70",
+   "b": "\u13a0",
+   "duplicate": true,
+   "note": "Cherokee small letter folds to the capital: folding is not lowercasing"
+  },
+  {
+   "id": "kelvin-sign",
+   "a": "\u212a",
+   "b": "k",
+   "duplicate": true,
+   "note": "KELVIN SIGN folds to k"
+  },
+  {
+   "id": "angstrom-sign",
+   "a": "\u212b",
+   "b": "\u00c5",
+   "duplicate": true,
+   "note": "ANGSTROM SIGN and A-ring fold to the same letter"
+  },
+  {
+   "id": "deseret",
+   "a": "\ud801\udc00",
+   "b": "\ud801\udc28",
+   "duplicate": true,
+   "note": "supplementary-plane case pair"
+  },
+  {
+   "id": "turkic-I-i",
+   "a": "I",
+   "b": "i",
+   "duplicate": true,
+   "note": "default (non-Turkic) folding: I = i"
+  },
+  {
+   "id": "turkic-dotted-capital-I-vs-i",
+   "a": "\u0130",
+   "b": "i",
+   "duplicate": false,
+   "note": "U+0130 folds to i + U+0307, not to i"
+  },
+  {
+   "id": "turkic-dotted-capital-I-vs-i-dot",
+   "a": "\u0130",
+   "b": "i\u0307",
+   "duplicate": true,
+   "note": "U+0130 folds to i + U+0307 (status F)"
+  },
+  {
+   "id": "turkic-dotless-i-vs-i",
+   "a": "\u0131",
+   "b": "i",
+   "duplicate": false,
+   "note": "U+0131 has no folding"
+  },
+  {
+   "id": "turkic-dotless-i-vs-I",
+   "a": "\u0131",
+   "b": "I",
+   "duplicate": false,
+   "note": "U+0131 has no folding"
+  },
+  {
+   "id": "turkic-istanbul",
+   "a": "\u0130stanbul",
+   "b": "istanbul",
+   "duplicate": false,
+   "note": "non-Turkic: extra combining dot remains"
+  },
+  {
+   "id": "turkic-isparta",
+   "a": "ISPARTA",
+   "b": "isparta",
+   "duplicate": true,
+   "note": "non-Turkic: I = i"
+  },
+  {
+   "id": "nfc-vs-nfd",
+   "a": "caf\u00e9",
+   "b": "cafe\u0301",
+   "duplicate": false,
+   "note": "no normalization: distinct"
+  },
+  {
+   "id": "nfc-vs-nfd-upper",
+   "a": "CAF\u00c9",
+   "b": "cafe\u0301",
+   "duplicate": false,
+   "note": "no normalization: distinct even after folding"
+  },
+  {
+   "id": "different-words",
+   "a": "Alpha",
+   "b": "Alpha2",
+   "duplicate": false,
+   "note": "different"
+  },
+  {
+   "id": "interior-space-count",
+   "a": "A B",
+   "b": "A  B",
+   "duplicate": false,
+   "note": "whitespace is not collapsed"
+  },
+  {
+   "id": "space-vs-nbsp",
+   "a": "A B",
+   "b": "A\u00a0B",
+   "duplicate": false,
+   "note": "NBSP is not a space"
+  },
+  {
+   "id": "zwsp-significant",
+   "a": "\u200bA",
+   "b": "A",
+   "duplicate": false,
+   "note": "ZERO WIDTH SPACE is a real character"
+  }
+ ],
+ "keys": [
+  {
+   "name": "Alpha",
+   "key": "alpha"
+  },
+  {
+   "name": "Stra\u00dfe",
+   "key": "strasse"
+  },
+  {
+   "name": "\u0130",
+   "key": "i\u0307"
+  },
+  {
+   "name": "\u03a3\u03c2\u03c3",
+   "key": "\u03c3\u03c3\u03c3"
+  },
+  {
+   "name": "cafe\u0301",
+   "key": "cafe\u0301"
+  },
+  {
+   "name": "\ud801\udc00",
+   "key": "\ud801\udc28"
+  }
+ ]
+}

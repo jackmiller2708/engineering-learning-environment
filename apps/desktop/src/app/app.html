@@ -1,0 +1,23 @@
+<a class="skip" href="#" (click)="skip($event)">Skip to main content</a>
+<header class="bar">
+  <span class="brand">{{ appName }}</span>
+  <nav aria-label="You are here">
+    <ol>
+      @if (labId() === null) {
+        <li><span class="crumb" aria-current="page">Worlds</span></li>
+      } @else {
+        <li><a class="crumb" routerLink="/worlds">Worlds</a></li>
+        <li><span class="sep" aria-hidden="true">/</span><span class="crumb">{{ worldName }}</span></li>
+        @if (lab(); as l) {
+          <li>
+            <span class="sep" aria-hidden="true">/</span>
+            <span class="crumb" aria-current="page"><span class="t" dir="auto" [title]="l.name">{{ l.name }}</span>{{ ' ' }}<span class="id">{{ shortId(l.id) }}</span></span>
+          </li>
+        }
+      }
+    </ol>
+  </nav>
+</header>
+<!-- Always in the page, before any screen, so a change to its text is announced. Empty most of the time. -->
+<div class="status" role="status">{{ status() }}</div>
+<div class="content"><router-outlet /></div>

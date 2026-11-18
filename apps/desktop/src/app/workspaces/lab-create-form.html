@@ -1,0 +1,33 @@
+<section class="create" aria-labelledby="create-heading">
+  <h2 id="create-heading">Create new lab</h2>
+  <form (submit)="submit($event)" novalidate>
+    <div class="field">
+      <div class="grow">
+        <label for="lab-name">Name</label>
+        <input
+          #nameInput
+          id="lab-name"
+          name="name"
+          type="text"
+          autocomplete="off"
+          spellcheck="false"
+          [readOnly]="creating()"
+          [attr.aria-invalid]="error() ? 'true' : null"
+          [attr.aria-describedby]="error() ? 'lab-name-error lab-name-hint' : 'lab-name-hint'"
+          (input)="onInput($event)"
+        />
+        @if (error(); as message) {
+          <p id="lab-name-error" class="err" role="alert">{{ message }}</p>
+        }
+        <p id="lab-name-hint" class="hint">Up to {{ limit }} characters.</p>
+      </div>
+      <button type="submit" class="btn primary" [disabled]="creating()">{{ creating() ? 'Creating…' : 'Create new lab' }}</button>
+    </div>
+  </form>
+  <!-- The status region is always in the page, so a change to its text is announced. -->
+  <div class="status" role="status">
+    @if (made(); as lab) {
+      <p class="ok"><span>Created “{{ lab.name }}”.</span><a [routerLink]="['/workspace', lab.id]">Open lab</a></p>
+    }
+  </div>
+</section>

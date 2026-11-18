@@ -1,0 +1,169 @@
+:host {
+  display: block;
+  block-size: 100%;
+}
+
+.worlds {
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr);
+  block-size: 100%;
+}
+
+.rail {
+  padding: 16px 12px;
+  overflow: auto;
+  background: var(--panel);
+  border-inline-end: 1px solid var(--rule);
+}
+
+.rail h2 {
+  margin: 0 8px 8px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.rail a {
+  display: flex;
+  align-items: center;
+  min-block-size: 36px;
+  padding: 0 8px;
+  background: var(--raised);
+  border-radius: 4px;
+  color: var(--text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+main {
+  box-sizing: border-box;
+  max-inline-size: none;
+  margin: 0;
+  padding: 24px 32px 48px;
+  overflow: auto;
+  min-inline-size: 0;
+}
+
+main > * {
+  max-inline-size: 1040px;
+}
+
+h1 {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+h1:focus-visible {
+  outline-offset: 4px;
+}
+
+.sec {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 28px 0 8px;
+  font-size: 1rem;
+}
+
+.n {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.notice {
+  display: grid;
+  gap: 2px;
+  margin: 16px 0 0;
+  padding: 10px 14px;
+  background: var(--notice-tint);
+  border: 1px solid var(--notice);
+  border-radius: 6px;
+}
+
+.notice strong {
+  color: var(--notice);
+}
+
+.notice p {
+  margin: 0;
+}
+
+.problem {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--danger-tint);
+  border: 1px solid var(--danger);
+  border-radius: 6px;
+}
+
+.problem p {
+  margin: 0;
+  color: var(--text);
+}
+
+.problem strong {
+  color: var(--danger);
+}
+
+.btn {
+  block-size: 36px;
+  padding: 0 14px;
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.loading {
+  margin: 0;
+  color: var(--muted);
+}
+
+/* The region stays in the page, so it takes no space while it has nothing to say. */
+.loading:not(:empty) {
+  padding: 14px 2px;
+}
+
+.empty {
+  padding: 20px 16px;
+  border: 1px dashed var(--edge);
+  border-radius: 6px;
+}
+
+.empty p {
+  margin: 0;
+}
+
+.empty p + p {
+  margin-block-start: 2px;
+  color: var(--muted);
+}
+
+/* Below 900 px (DESIGN_SPEC 8): the rail becomes a strip above the content, and only the content scrolls. */
+@media (max-width: 899px) {
+  .worlds {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .rail {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    border-inline-end: 0;
+    border-block-end: 1px solid var(--rule);
+  }
+
+  .rail h2 {
+    margin: 0;
+  }
+
+  main {
+    min-block-size: 0;
+    padding: 16px 16px 40px;
+  }
+}

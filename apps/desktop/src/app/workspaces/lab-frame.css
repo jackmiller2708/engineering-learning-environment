@@ -1,0 +1,154 @@
+:host {
+  display: block;
+  block-size: 100%;
+}
+
+main {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  block-size: 100%;
+  max-inline-size: none;
+  margin: 0;
+  padding: 0;
+}
+
+h1[tabindex='-1']:focus-visible {
+  outline-offset: 4px;
+}
+
+.labbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-block-size: 44px;
+  padding: 0 16px;
+  background: var(--panel);
+  border-block-end: 1px solid var(--rule);
+}
+
+.labbar h1 {
+  margin: 0;
+  min-inline-size: 0;
+  overflow: hidden;
+  font-size: 1rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta {
+  flex: none;
+  color: var(--muted);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.benchwrap {
+  position: relative;
+  flex: 1;
+  min-block-size: 0;
+  background-color: var(--bench);
+  background-image: radial-gradient(var(--grid) 1px, transparent 1.3px);
+  background-size: 16px 16px;
+  background-position: 8px 8px;
+}
+
+.bench-note {
+  position: absolute;
+  inset-block-start: 20px;
+  inset-inline-start: 24px;
+  max-inline-size: 46ch;
+}
+
+.bench-note strong {
+  display: block;
+}
+
+.bench-note span {
+  color: var(--muted);
+}
+
+.facts {
+  position: absolute;
+  inset-block-end: 16px;
+  inset-inline-end: 16px;
+  box-sizing: border-box;
+  inline-size: max-content;
+  max-inline-size: min(420px, calc(100% - 32px));
+  margin: 0;
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  font-size: 0.75rem;
+}
+
+.facts > div {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+}
+
+.facts > div + div {
+  border-block-start: 1px solid var(--rule);
+}
+
+.facts dt,
+.facts dd {
+  margin: 0;
+  padding: 5px 8px;
+}
+
+.facts dt {
+  color: var(--muted);
+  border-inline-end: 1px solid var(--rule);
+}
+
+.facts dd {
+  overflow-wrap: anywhere;
+}
+
+.facts .name {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.mono {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+}
+
+.fullpage {
+  box-sizing: border-box;
+  max-inline-size: 640px;
+  padding: 32px;
+}
+
+.fullpage h1 {
+  margin: 12px 0;
+}
+
+/* The link to Worlds sits 16px below whatever precedes it, as in the prototype. */
+.fullpage .problem + p {
+  margin-block-start: 16px;
+}
+
+.problem {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--danger-tint);
+  border: 1px solid var(--danger);
+  border-radius: 6px;
+}
+
+.problem p {
+  margin: 0;
+}
+
+.btn {
+  block-size: 36px;
+  padding: 0 14px;
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  border-radius: 4px;
+  font-weight: 600;
+}

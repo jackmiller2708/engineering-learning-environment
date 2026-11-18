@@ -1,0 +1,31 @@
+[package]
+name = "ele-desktop"
+version = "0.1.0"
+description = "Engineering Learning Environment desktop host"
+edition = "2024"
+rust-version = "1.90"
+publish = false
+
+[lib]
+name = "ele_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+icu_casemap = "=2.4.0"
+serde = "1"
+# Production id source: OS random bytes (fallible getrandom::fill) shaped into a UUID v4 by uuid::Builder.
+# `Uuid::new_v4` is not used because it panics when the RNG fails.
+getrandom = "0.4"
+uuid = { version = "1", default-features = false }
+serde_json = { version = "1", features = ["raw_value"] }
+
+# Atomic no-replace rename (renameat2 RENAME_NOREPLACE). Already in the lockfile through Tauri.
+[target.'cfg(target_os = "linux")'.dependencies]
+rustix = { version = "1.1", default-features = false, features = ["std", "fs"] }
+
+[dev-dependencies]
+tempfile = "3"

@@ -1,0 +1,1782 @@
+{
+ "description": "Workspace manifest decoding (schema version 1). Each case gives the JSON TEXT to decode and the expected outcome. Shared by the TypeScript decoder tests and the Rust decoder tests. TypeScript is the behavioural reference. Error shape: {code} or {field, code} or {code, version}. Unpaired surrogates are written as JSON escape sequences inside the input text, so they are portable.",
+ "checkOrder": [
+  "malformed_json",
+  "not_an_object",
+  "invalid_schema_version / unsupported_version",
+  "id",
+  "name",
+  "createdAt"
+ ],
+ "cases": [
+  {
+   "id": "valid-canonical",
+   "note": "the layout encodeManifest writes",
+   "input": "{\n  \"schemaVersion\": 1,\n  \"id\": \"4f525f09-3c12-449f-872b-c148c25e63ba\",\n  \"name\": \"Alpha\",\n  \"createdAt\": \"2026-11-17T07:05:09Z\"\n}\n",
+   "expect": {
+    "ok": true,
+    "workspace": {
+     "id": "4f525f09-3c12-449f-872b-c148c25e63ba",
+     "name": "Alpha",
+     "createdAt": "2026-11-17T07:05:09Z"
+    }
+   }
+  },
+  {
+   "id": "valid-compact",
+   "note": "compact layout",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": true,
+    "workspace": {
+     "id": "4f525f09-3c12-449f-872b-c148c25e63ba",
+     "name": "Alpha",
+     "createdAt": "2026-11-17T07:05:09Z"
+    }
+   }
+  },
+  {
+   "id": "valid-reordered-and-spaced",
+   "note": "any key order and any JSON whitespace (space, tab, CR, LF)",
+   "input": "{ \"createdAt\": \"2026-11-17T07:05:09Z\",\r\n\t\"name\": \"Alpha\" , \"id\": \"4f525f09-3c12-449f-872b-c148c25e63ba\",\n\"schemaVersion\" : 1 }",
+   "expect": {
+    "ok": true,
+    "workspace": {
+     "id": "4f525f09-3c12-449f-872b-c148c25e63ba",
+     "name": "Alpha",
+     "createdAt": "2026-11-17T07:05:09Z"
+    }
+   }
+  },
+  {
+   "id": "valid-surrounding-whitespace",
+   "note": "JSON whitespace around the document",
+   "input": " \n\t{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}\r\n ",
+   "expect": {
+    "ok": true,
+    "workspace": {
+     "id": "4f525f09-3c12-449f-872b-c148c25e63ba",
+     "name": "Alpha",
+     "createdAt": "2026-11-17T07:05:09Z"
+    }
+   }
+  },
+  {
+   "id": "valid-escaped-key",
+   "note": "an escaped key that decodes to \"id\"",
+   "input": "{\"schemaVersion\":1,\"i\\u0064\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": true,
+    "workspace": {
+     "id": "4f525f09-3c12-449f-872b-c148c25e63ba",
+     "name": "Alpha",
+     "createdAt": "2026-11-17T07:05:09Z"
+    }
+   }
+  },
+  {
+   "id": "valid-surrogate-pair-name",
+   "note": "a well-formed escaped pair is one scalar value",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"\\ud83d\\ude00 ok\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": true,
+    "workspace": {
+     "id": "4f525f09-3c12-449f-872b-c148c25e63ba",
+     "name": "\ud83d\ude00 ok",
+     "createdAt": "2026-11-17T07:05:09Z"
+    }
+   }
+  },
+  {
+   "id": "valid-escaped-name-chars",
+   "note": "escapes decode; no normalization, case kept",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"caf\\u00e9 \\u00c4 / \\\" \\\\\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": true,
+    "workspace": {
+     "id": "4f525f09-3c12-449f-872b-c148c25e63ba",
+     "name": "caf\u00e9 \u00c4 / \" \\",
+     "createdAt": "2026-11-17T07:05:09Z"
+    }
+   }
+  },
+  {
+   "id": "valid-nfd-name-preserved",
+   "note": "decomposed name stays decomposed",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"cafe\\u0301\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": true,
+    "workspace": {
+     "id": "4f525f09-3c12-449f-872b-c148c25e63ba",
+     "name": "cafe\u0301",
+     "createdAt": "2026-11-17T07:05:09Z"
+    }
+   }
+  },
+  {
+   "id": "valid-zwsp-name",
+   "note": "ZERO WIDTH SPACE is not White_Space",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"\\u200bA\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": true,
+    "workspace": {
+     "id": "4f525f09-3c12-449f-872b-c148c25e63ba",
+     "name": "\u200bA",
+     "createdAt": "2026-11-17T07:05:09Z"
+    }
+   }
+  },
+  {
+   "id": "valid-name-64-emoji",
+   "note": "64 supplementary-plane scalars",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": true,
+    "workspace": {
+     "id": "4f525f09-3c12-449f-872b-c148c25e63ba",
+     "name": "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00",
+     "createdAt": "2026-11-17T07:05:09Z"
+    }
+   }
+  },
+  {
+   "id": "valid-min-timestamp",
+   "note": "range start",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"1970-01-01T00:00:00Z\"}",
+   "expect": {
+    "ok": true,
+    "workspace": {
+     "id": "4f525f09-3c12-449f-872b-c148c25e63ba",
+     "name": "Alpha",
+     "createdAt": "1970-01-01T00:00:00Z"
+    }
+   }
+  },
+  {
+   "id": "valid-max-timestamp",
+   "note": "range end",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"9999-12-31T23:59:59Z\"}",
+   "expect": {
+    "ok": true,
+    "workspace": {
+     "id": "4f525f09-3c12-449f-872b-c148c25e63ba",
+     "name": "Alpha",
+     "createdAt": "9999-12-31T23:59:59Z"
+    }
+   }
+  },
+  {
+   "id": "valid-leap-day",
+   "note": "leap day",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2024-02-29T00:00:00Z\"}",
+   "expect": {
+    "ok": true,
+    "workspace": {
+     "id": "4f525f09-3c12-449f-872b-c148c25e63ba",
+     "name": "Alpha",
+     "createdAt": "2024-02-29T00:00:00Z"
+    }
+   }
+  },
+  {
+   "id": "valid-version-1.0",
+   "note": "1.0 is the integer 1 in JSON (JavaScript semantics)",
+   "input": "{\"schemaVersion\":1.0,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": true,
+    "workspace": {
+     "id": "4f525f09-3c12-449f-872b-c148c25e63ba",
+     "name": "Alpha",
+     "createdAt": "2026-11-17T07:05:09Z"
+    }
+   }
+  },
+  {
+   "id": "valid-version-1e0",
+   "note": "1e0 is the integer 1",
+   "input": "{\"schemaVersion\":1e0,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": true,
+    "workspace": {
+     "id": "4f525f09-3c12-449f-872b-c148c25e63ba",
+     "name": "Alpha",
+     "createdAt": "2026-11-17T07:05:09Z"
+    }
+   }
+  },
+  {
+   "id": "valid-version-10e-1",
+   "note": "10e-1 is the integer 1",
+   "input": "{\"schemaVersion\":10e-1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": true,
+    "workspace": {
+     "id": "4f525f09-3c12-449f-872b-c148c25e63ba",
+     "name": "Alpha",
+     "createdAt": "2026-11-17T07:05:09Z"
+    }
+   }
+  },
+  {
+   "id": "unknown-top-level",
+   "note": "unknown scalars are ignored",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\",\"future\":\"x\",\"n\":1,\"b\":true,\"z\":null}",
+   "expect": {
+    "ok": true,
+    "workspace": {
+     "id": "4f525f09-3c12-449f-872b-c148c25e63ba",
+     "name": "Alpha",
+     "createdAt": "2026-11-17T07:05:09Z"
+    }
+   }
+  },
+  {
+   "id": "unknown-nested",
+   "note": "unknown nested structures are ignored, even if invalid for the contract",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\",\"future\":{\"a\":[1,{\"b\":[]}],\"c\":{\"d\":null}}}",
+   "expect": {
+    "ok": true,
+    "workspace": {
+     "id": "4f525f09-3c12-449f-872b-c148c25e63ba",
+     "name": "Alpha",
+     "createdAt": "2026-11-17T07:05:09Z"
+    }
+   }
+  },
+  {
+   "id": "unknown-proto-object",
+   "note": "__proto__ is an ordinary unknown key",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\",\"__proto__\":{\"name\":\"Evil\",\"id\":\"x\"}}",
+   "expect": {
+    "ok": true,
+    "workspace": {
+     "id": "4f525f09-3c12-449f-872b-c148c25e63ba",
+     "name": "Alpha",
+     "createdAt": "2026-11-17T07:05:09Z"
+    }
+   }
+  },
+  {
+   "id": "unknown-proto-null",
+   "note": "__proto__: null",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\",\"__proto__\":null}",
+   "expect": {
+    "ok": true,
+    "workspace": {
+     "id": "4f525f09-3c12-449f-872b-c148c25e63ba",
+     "name": "Alpha",
+     "createdAt": "2026-11-17T07:05:09Z"
+    }
+   }
+  },
+  {
+   "id": "unknown-constructor",
+   "note": "inherited-looking names are ignored",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\",\"constructor\":{\"prototype\":{}},\"toString\":1}",
+   "expect": {
+    "ok": true,
+    "workspace": {
+     "id": "4f525f09-3c12-449f-872b-c148c25e63ba",
+     "name": "Alpha",
+     "createdAt": "2026-11-17T07:05:09Z"
+    }
+   }
+  },
+  {
+   "id": "unknown-value-lone-surrogate",
+   "note": "an unpaired surrogate inside an ignored value is accepted",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\",\"extra\":\"\\ud800\"}",
+   "expect": {
+    "ok": true,
+    "workspace": {
+     "id": "4f525f09-3c12-449f-872b-c148c25e63ba",
+     "name": "Alpha",
+     "createdAt": "2026-11-17T07:05:09Z"
+    }
+   }
+  },
+  {
+   "id": "unknown-nested-lone-surrogate",
+   "note": "also when nested",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\",\"extra\":[{\"k\":\"\\udc00\"}]}",
+   "expect": {
+    "ok": true,
+    "workspace": {
+     "id": "4f525f09-3c12-449f-872b-c148c25e63ba",
+     "name": "Alpha",
+     "createdAt": "2026-11-17T07:05:09Z"
+    }
+   }
+  },
+  {
+   "id": "unknown-key-lone-surrogate",
+   "note": "an unpaired surrogate in an object KEY is accepted by JavaScript",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\",\"\\ud800\":1}",
+   "expect": {
+    "ok": true,
+    "workspace": {
+     "id": "4f525f09-3c12-449f-872b-c148c25e63ba",
+     "name": "Alpha",
+     "createdAt": "2026-11-17T07:05:09Z"
+    }
+   },
+   "rustDeviation": {
+    "expect": {
+     "ok": false,
+     "error": {
+      "code": "malformed_json"
+     }
+    },
+    "reason": "serde_json cannot read an object key containing an unpaired surrogate escape and reports a syntax error. Rust is stricter. See packages/domain/README.md."
+   }
+  },
+  {
+   "id": "unknown-deeply-nested",
+   "note": "500 levels of nesting in an ignored value",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\",\"deep\":[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[1]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]}",
+   "expect": {
+    "ok": true,
+    "workspace": {
+     "id": "4f525f09-3c12-449f-872b-c148c25e63ba",
+     "name": "Alpha",
+     "createdAt": "2026-11-17T07:05:09Z"
+    }
+   }
+  },
+  {
+   "id": "duplicate-key-last-wins",
+   "note": "for a repeated key the last value is used (the earlier invalid one is ignored)",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\" bad \",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": true,
+    "workspace": {
+     "id": "4f525f09-3c12-449f-872b-c148c25e63ba",
+     "name": "Alpha",
+     "createdAt": "2026-11-17T07:05:09Z"
+    }
+   }
+  },
+  {
+   "id": "duplicate-key-last-invalid",
+   "note": "the last value is validated, even when an earlier one was valid",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"name\":\" Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "not_trimmed",
+     "field": "name"
+    }
+   }
+  },
+  {
+   "id": "malformed-empty",
+   "note": "no content",
+   "input": " ",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "malformed_json"
+    }
+   }
+  },
+  {
+   "id": "malformed-empty-string",
+   "note": "empty input",
+   "input": "",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "malformed_json"
+    }
+   }
+  },
+  {
+   "id": "malformed-open-brace",
+   "note": "truncated",
+   "input": "{",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "malformed_json"
+    }
+   }
+  },
+  {
+   "id": "malformed-trailing-comma",
+   "note": "trailing comma",
+   "input": "{\"a\":1,}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "malformed_json"
+    }
+   }
+  },
+  {
+   "id": "malformed-single-quotes",
+   "note": "single quotes",
+   "input": "{'a':1}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "malformed_json"
+    }
+   }
+  },
+  {
+   "id": "malformed-truncated-literal",
+   "note": "truncated literal",
+   "input": "nul",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "malformed_json"
+    }
+   }
+  },
+  {
+   "id": "malformed-undefined",
+   "note": "not JSON",
+   "input": "undefined",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "malformed_json"
+    }
+   }
+  },
+  {
+   "id": "malformed-bom",
+   "note": "a byte order mark is not JSON whitespace",
+   "input": "\ufeff{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "malformed_json"
+    }
+   }
+  },
+  {
+   "id": "malformed-trailing-garbage",
+   "note": "text after the document",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"} x",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "malformed_json"
+    }
+   }
+  },
+  {
+   "id": "malformed-two-documents",
+   "note": "two documents",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "malformed_json"
+    }
+   }
+  },
+  {
+   "id": "malformed-nan",
+   "note": "not JSON",
+   "input": "NaN",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "malformed_json"
+    }
+   }
+  },
+  {
+   "id": "malformed-comment",
+   "note": "comments are not JSON",
+   "input": "/* c */{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "malformed_json"
+    }
+   }
+  },
+  {
+   "id": "malformed-raw-tab-in-string",
+   "note": "an unescaped control character inside a string",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"a\tb\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "malformed_json"
+    }
+   }
+  },
+  {
+   "id": "malformed-raw-newline-in-string",
+   "note": "an unescaped newline inside a string",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"a\nb\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "malformed_json"
+    }
+   }
+  },
+  {
+   "id": "malformed-bad-escape",
+   "note": "invalid escape sequence",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"a\\xb\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "malformed_json"
+    }
+   }
+  },
+  {
+   "id": "malformed-short-hex-escape",
+   "note": "truncated \\u escape",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"\\u12\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "malformed_json"
+    }
+   }
+  },
+  {
+   "id": "malformed-leading-zero-number",
+   "note": "leading zero",
+   "input": "{\"schemaVersion\":01}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "malformed_json"
+    }
+   }
+  },
+  {
+   "id": "malformed-plus-number",
+   "note": "leading plus",
+   "input": "{\"schemaVersion\":+1}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "malformed_json"
+    }
+   }
+  },
+  {
+   "id": "malformed-bare-key",
+   "note": "unquoted key",
+   "input": "{schemaVersion:1}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "malformed_json"
+    }
+   }
+  },
+  {
+   "id": "malformed-array-trailing-comma",
+   "note": "invalid even though the root is not an object",
+   "input": "[1,]",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "malformed_json"
+    }
+   }
+  },
+  {
+   "id": "malformed-unclosed-string",
+   "note": "unterminated string",
+   "input": "{\"a\":\"x}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "malformed_json"
+    }
+   }
+  },
+  {
+   "id": "root-null",
+   "note": "valid JSON whose root is not an object",
+   "input": "null",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "not_an_object"
+    }
+   }
+  },
+  {
+   "id": "root-empty-array",
+   "note": "valid JSON whose root is not an object",
+   "input": "[]",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "not_an_object"
+    }
+   }
+  },
+  {
+   "id": "root-array",
+   "note": "valid JSON whose root is not an object",
+   "input": "[1]",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "not_an_object"
+    }
+   }
+  },
+  {
+   "id": "root-array-of-manifest",
+   "note": "valid JSON whose root is not an object",
+   "input": "[{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}]",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "not_an_object"
+    }
+   }
+  },
+  {
+   "id": "root-number",
+   "note": "valid JSON whose root is not an object",
+   "input": "1",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "not_an_object"
+    }
+   }
+  },
+  {
+   "id": "root-string",
+   "note": "valid JSON whose root is not an object",
+   "input": "\"text\"",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "not_an_object"
+    }
+   }
+  },
+  {
+   "id": "root-true",
+   "note": "valid JSON whose root is not an object",
+   "input": "true",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "not_an_object"
+    }
+   }
+  },
+  {
+   "id": "root-false",
+   "note": "valid JSON whose root is not an object",
+   "input": "false",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "not_an_object"
+    }
+   }
+  },
+  {
+   "id": "root-padded-null",
+   "note": "valid JSON whose root is not an object",
+   "input": "  null  ",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "not_an_object"
+    }
+   }
+  },
+  {
+   "id": "root-string-lone-surrogate",
+   "note": "valid JSON whose root is not an object",
+   "input": "\"\\ud800\"",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "not_an_object"
+    }
+   }
+  },
+  {
+   "id": "root-array-lone-surrogate",
+   "note": "valid JSON whose root is not an object",
+   "input": "[\"\\udc00\"]",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "not_an_object"
+    }
+   }
+  },
+  {
+   "id": "version-missing",
+   "note": "absent",
+   "input": "{\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_schema_version"
+    }
+   }
+  },
+  {
+   "id": "version-string",
+   "note": "a string",
+   "input": "{\"schemaVersion\":\"1\",\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_schema_version"
+    }
+   }
+  },
+  {
+   "id": "version-fraction",
+   "note": "not an integer",
+   "input": "{\"schemaVersion\":1.5,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_schema_version"
+    }
+   }
+  },
+  {
+   "id": "version-null",
+   "note": "null",
+   "input": "{\"schemaVersion\":null,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_schema_version"
+    }
+   }
+  },
+  {
+   "id": "version-true",
+   "note": "boolean",
+   "input": "{\"schemaVersion\":true,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_schema_version"
+    }
+   }
+  },
+  {
+   "id": "version-array",
+   "note": "array",
+   "input": "{\"schemaVersion\":[1],\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_schema_version"
+    }
+   }
+  },
+  {
+   "id": "version-object",
+   "note": "object",
+   "input": "{\"schemaVersion\":{},\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_schema_version"
+    }
+   }
+  },
+  {
+   "id": "version-infinity",
+   "note": "overflows to Infinity, which is not an integer",
+   "input": "{\"schemaVersion\":1e400,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_schema_version"
+    }
+   }
+  },
+  {
+   "id": "version-exp-fraction",
+   "note": "1.5",
+   "input": "{\"schemaVersion\":15e-1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_schema_version"
+    }
+   }
+  },
+  {
+   "id": "version-unsupported-0",
+   "note": "integer other than 1",
+   "input": "{\"schemaVersion\":0,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "unsupported_version",
+     "version": 0
+    }
+   }
+  },
+  {
+   "id": "version-unsupported-2",
+   "note": "integer other than 1",
+   "input": "{\"schemaVersion\":2,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "unsupported_version",
+     "version": 2
+    }
+   }
+  },
+  {
+   "id": "version-unsupported--1",
+   "note": "integer other than 1",
+   "input": "{\"schemaVersion\":-1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "unsupported_version",
+     "version": -1
+    }
+   }
+  },
+  {
+   "id": "version-unsupported-1000",
+   "note": "integer other than 1",
+   "input": "{\"schemaVersion\":1000,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "unsupported_version",
+     "version": 1000
+    }
+   }
+  },
+  {
+   "id": "version-unsupported-1e30",
+   "note": "large integral number",
+   "input": "{\"schemaVersion\":1e30,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "unsupported_version",
+     "version": 1e+30
+    }
+   }
+  },
+  {
+   "id": "version-unsupported-beyond-2^53",
+   "note": "integer literal beyond 2^53 is read as a double",
+   "input": "{\"schemaVersion\":123456789012345678901234567890}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "unsupported_version",
+     "version": 1.2345678901234568e+29
+    }
+   }
+  },
+  {
+   "id": "version-checked-before-fields",
+   "note": "precedence: version before id",
+   "input": "{\"schemaVersion\":2,\"id\":\"garbage\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "unsupported_version",
+     "version": 2
+    }
+   }
+  },
+  {
+   "id": "version-invalid-before-fields",
+   "note": "precedence: version type before id",
+   "input": "{\"schemaVersion\":\"x\",\"id\":\"garbage\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_schema_version"
+    }
+   }
+  },
+  {
+   "id": "id-missing",
+   "note": "absent",
+   "input": "{\"schemaVersion\":1,\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "missing",
+     "field": "id"
+    }
+   }
+  },
+  {
+   "id": "id-number",
+   "note": "number",
+   "input": "{\"schemaVersion\":1,\"id\":7,\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "not_a_string",
+     "field": "id"
+    }
+   }
+  },
+  {
+   "id": "id-null",
+   "note": "null is not \"missing\"",
+   "input": "{\"schemaVersion\":1,\"id\":null,\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "not_a_string",
+     "field": "id"
+    }
+   }
+  },
+  {
+   "id": "id-array",
+   "note": "array",
+   "input": "{\"schemaVersion\":1,\"id\":[\"4f525f09-3c12-449f-872b-c148c25e63ba\"],\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "not_a_string",
+     "field": "id"
+    }
+   }
+  },
+  {
+   "id": "id-uppercase",
+   "note": "canonical form is lowercase",
+   "input": "{\"schemaVersion\":1,\"id\":\"4F525F09-3C12-449F-872B-C148C25E63BA\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_id",
+     "field": "id"
+    }
+   }
+  },
+  {
+   "id": "id-v1",
+   "note": "version 1",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-149f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_id",
+     "field": "id"
+    }
+   }
+  },
+  {
+   "id": "id-v5",
+   "note": "version 5",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-549f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_id",
+     "field": "id"
+    }
+   }
+  },
+  {
+   "id": "id-variant-c",
+   "note": "variant nibble c",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-c72b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_id",
+     "field": "id"
+    }
+   }
+  },
+  {
+   "id": "id-variant-7",
+   "note": "variant nibble 7",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-772b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_id",
+     "field": "id"
+    }
+   }
+  },
+  {
+   "id": "id-no-hyphens",
+   "note": "no hyphens",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f093c12449f872bc148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_id",
+     "field": "id"
+    }
+   }
+  },
+  {
+   "id": "id-braces",
+   "note": "braces",
+   "input": "{\"schemaVersion\":1,\"id\":\"{4f525f09-3c12-449f-872b-c148c25e63ba}\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_id",
+     "field": "id"
+    }
+   }
+  },
+  {
+   "id": "id-trailing-newline",
+   "note": "trailing newline inside the string",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\\n\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_id",
+     "field": "id"
+    }
+   }
+  },
+  {
+   "id": "id-leading-space",
+   "note": "leading space",
+   "input": "{\"schemaVersion\":1,\"id\":\" 4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_id",
+     "field": "id"
+    }
+   }
+  },
+  {
+   "id": "id-nil",
+   "note": "nil UUID",
+   "input": "{\"schemaVersion\":1,\"id\":\"00000000-0000-0000-0000-000000000000\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_id",
+     "field": "id"
+    }
+   }
+  },
+  {
+   "id": "id-empty",
+   "note": "empty",
+   "input": "{\"schemaVersion\":1,\"id\":\"\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_id",
+     "field": "id"
+    }
+   }
+  },
+  {
+   "id": "id-fullwidth-digits",
+   "note": "non-ASCII digit",
+   "input": "{\"schemaVersion\":1,\"id\":\"\\uff14f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_id",
+     "field": "id"
+    }
+   }
+  },
+  {
+   "id": "id-non-hex",
+   "note": "non-hex digit",
+   "input": "{\"schemaVersion\":1,\"id\":\"4g525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_id",
+     "field": "id"
+    }
+   }
+  },
+  {
+   "id": "id-lone-surrogate",
+   "note": "an unpaired surrogate in id is an invalid id",
+   "input": "{\"schemaVersion\":1,\"id\":\"\\ud800\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_id",
+     "field": "id"
+    }
+   }
+  },
+  {
+   "id": "name-missing",
+   "note": "absent",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "missing",
+     "field": "name"
+    }
+   }
+  },
+  {
+   "id": "name-number",
+   "note": "number",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":5,\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "not_a_string",
+     "field": "name"
+    }
+   }
+  },
+  {
+   "id": "name-null",
+   "note": "null",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":null,\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "not_a_string",
+     "field": "name"
+    }
+   }
+  },
+  {
+   "id": "name-array",
+   "note": "array",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":[\"Alpha\"],\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "not_a_string",
+     "field": "name"
+    }
+   }
+  },
+  {
+   "id": "name-empty",
+   "note": "empty",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "empty",
+     "field": "name"
+    }
+   }
+  },
+  {
+   "id": "name-spaces",
+   "note": "whitespace only",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"   \",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "empty",
+     "field": "name"
+    }
+   }
+  },
+  {
+   "id": "name-leading-space",
+   "note": "stored names are never trimmed",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\" Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "not_trimmed",
+     "field": "name"
+    }
+   }
+  },
+  {
+   "id": "name-trailing-nel",
+   "note": "NEL is White_Space",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\\u0085\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "not_trimmed",
+     "field": "name"
+    }
+   }
+  },
+  {
+   "id": "name-trailing-ls",
+   "note": "LINE SEPARATOR is White_Space",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\\u2028\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "not_trimmed",
+     "field": "name"
+    }
+   }
+  },
+  {
+   "id": "name-tab-inside",
+   "note": "Cc",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"A\\tB\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "control_character",
+     "field": "name"
+    }
+   }
+  },
+  {
+   "id": "name-nul",
+   "note": "U+0000",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"\\u0000\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "control_character",
+     "field": "name"
+    }
+   }
+  },
+  {
+   "id": "name-del",
+   "note": "U+007F",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"a\\u007fb\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "control_character",
+     "field": "name"
+    }
+   }
+  },
+  {
+   "id": "name-too-long",
+   "note": "65 scalar values",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "too_long",
+     "field": "name"
+    }
+   }
+  },
+  {
+   "id": "name-too-long-emoji",
+   "note": "65 supplementary scalars",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\\ud83d\\ude00\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "too_long",
+     "field": "name"
+    }
+   }
+  },
+  {
+   "id": "name-lone-high",
+   "note": "unpaired surrogate escape in the name is malformed UTF-16, not malformed JSON",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"\\ud800\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "malformed_utf16",
+     "field": "name"
+    }
+   }
+  },
+  {
+   "id": "name-lone-low",
+   "note": "unpaired surrogate escape in the name is malformed UTF-16, not malformed JSON",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"a\\udc00b\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "malformed_utf16",
+     "field": "name"
+    }
+   }
+  },
+  {
+   "id": "name-reversed-pair",
+   "note": "unpaired surrogate escape in the name is malformed UTF-16, not malformed JSON",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"\\ude00\\ud83d\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "malformed_utf16",
+     "field": "name"
+    }
+   }
+  },
+  {
+   "id": "name-truncated-pair",
+   "note": "unpaired surrogate escape in the name is malformed UTF-16, not malformed JSON",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\\ud83d\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "malformed_utf16",
+     "field": "name"
+    }
+   }
+  },
+  {
+   "id": "name-lone-high-then-letter",
+   "note": "unpaired surrogate escape in the name is malformed UTF-16, not malformed JSON",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"\\ud83dx\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "malformed_utf16",
+     "field": "name"
+    }
+   }
+  },
+  {
+   "id": "name-surrogate-before-too-long",
+   "note": "precedence: malformed UTF-16 before length",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"\\ud800aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "malformed_utf16",
+     "field": "name"
+    }
+   }
+  },
+  {
+   "id": "name-control-before-too-long",
+   "note": "precedence: control before length",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"\\u0001aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "control_character",
+     "field": "name"
+    }
+   }
+  },
+  {
+   "id": "time-missing",
+   "note": "absent",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "missing",
+     "field": "createdAt"
+    }
+   }
+  },
+  {
+   "id": "time-number",
+   "note": "number",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":1763363109}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "not_a_string",
+     "field": "createdAt"
+    }
+   }
+  },
+  {
+   "id": "time-null",
+   "note": "null",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":null}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "not_a_string",
+     "field": "createdAt"
+    }
+   }
+  },
+  {
+   "id": "time-fraction",
+   "note": "fraction",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09.000Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_timestamp",
+     "field": "createdAt"
+    }
+   }
+  },
+  {
+   "id": "time-offset",
+   "note": "numeric offset",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09+00:00\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_timestamp",
+     "field": "createdAt"
+    }
+   }
+  },
+  {
+   "id": "time-lowercase-t",
+   "note": "lowercase t",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17t07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_timestamp",
+     "field": "createdAt"
+    }
+   }
+  },
+  {
+   "id": "time-lowercase-z",
+   "note": "lowercase z",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_timestamp",
+     "field": "createdAt"
+    }
+   }
+  },
+  {
+   "id": "time-space",
+   "note": "space separator",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17 07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_timestamp",
+     "field": "createdAt"
+    }
+   }
+  },
+  {
+   "id": "time-no-z",
+   "note": "no Z",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_timestamp",
+     "field": "createdAt"
+    }
+   }
+  },
+  {
+   "id": "time-date-only",
+   "note": "date only",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_timestamp",
+     "field": "createdAt"
+    }
+   }
+  },
+  {
+   "id": "time-trailing-newline",
+   "note": "trailing newline inside the string",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T07:05:09Z\\n\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_timestamp",
+     "field": "createdAt"
+    }
+   }
+  },
+  {
+   "id": "time-leading-space",
+   "note": "leading space",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\" 2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_timestamp",
+     "field": "createdAt"
+    }
+   }
+  },
+  {
+   "id": "time-arabic-digits",
+   "note": "non-ASCII digits",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"\\u0662\\u0660\\u0662\\u0666-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_timestamp",
+     "field": "createdAt"
+    }
+   }
+  },
+  {
+   "id": "time-empty",
+   "note": "empty",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_timestamp",
+     "field": "createdAt"
+    }
+   }
+  },
+  {
+   "id": "time-feb-29-non-leap",
+   "note": "not a leap year",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-02-29T00:00:00Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_timestamp",
+     "field": "createdAt"
+    }
+   }
+  },
+  {
+   "id": "time-feb-29-1900",
+   "note": "1900 is not a leap year",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"1900-02-29T00:00:00Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_timestamp",
+     "field": "createdAt"
+    }
+   }
+  },
+  {
+   "id": "time-feb-29-2100",
+   "note": "2100 is not a leap year",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2100-02-29T00:00:00Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_timestamp",
+     "field": "createdAt"
+    }
+   }
+  },
+  {
+   "id": "time-feb-30",
+   "note": "Feb 30",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2024-02-30T00:00:00Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_timestamp",
+     "field": "createdAt"
+    }
+   }
+  },
+  {
+   "id": "time-april-31",
+   "note": "April 31",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-04-31T00:00:00Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_timestamp",
+     "field": "createdAt"
+    }
+   }
+  },
+  {
+   "id": "time-month-13",
+   "note": "month 13",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-13-01T00:00:00Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_timestamp",
+     "field": "createdAt"
+    }
+   }
+  },
+  {
+   "id": "time-month-0",
+   "note": "month 0",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-00-10T00:00:00Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_timestamp",
+     "field": "createdAt"
+    }
+   }
+  },
+  {
+   "id": "time-day-0",
+   "note": "day 0",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-01-00T00:00:00Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_timestamp",
+     "field": "createdAt"
+    }
+   }
+  },
+  {
+   "id": "time-hour-24",
+   "note": "hour 24",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T24:00:00Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_timestamp",
+     "field": "createdAt"
+    }
+   }
+  },
+  {
+   "id": "time-minute-60",
+   "note": "minute 60",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T23:60:00Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_timestamp",
+     "field": "createdAt"
+    }
+   }
+  },
+  {
+   "id": "time-leap-second",
+   "note": "second 60",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"2026-11-17T23:59:60Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_timestamp",
+     "field": "createdAt"
+    }
+   }
+  },
+  {
+   "id": "time-before-epoch",
+   "note": "one second before 1970",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"1969-12-31T23:59:59Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "timestamp_out_of_range",
+     "field": "createdAt"
+    }
+   }
+  },
+  {
+   "id": "time-year-0",
+   "note": "year 0",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"0000-01-01T00:00:00Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "timestamp_out_of_range",
+     "field": "createdAt"
+    }
+   }
+  },
+  {
+   "id": "time-year-0-invalid-date",
+   "note": "calendar errors are reported before range errors",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"0000-02-30T00:00:00Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_timestamp",
+     "field": "createdAt"
+    }
+   }
+  },
+  {
+   "id": "time-year-0-leap-day",
+   "note": "year 0 is a leap year; the date is valid but out of range",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"0000-02-29T00:00:00Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "timestamp_out_of_range",
+     "field": "createdAt"
+    }
+   }
+  },
+  {
+   "id": "time-lone-surrogate",
+   "note": "an unpaired surrogate in createdAt is an invalid timestamp",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"Alpha\",\"createdAt\":\"\\ud800\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_timestamp",
+     "field": "createdAt"
+    }
+   }
+  },
+  {
+   "id": "precedence-id-first",
+   "note": "id before name and createdAt",
+   "input": "{\"schemaVersion\":1,\"id\":\"x\",\"name\":\"\",\"createdAt\":\"y\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "invalid_id",
+     "field": "id"
+    }
+   }
+  },
+  {
+   "id": "precedence-name-before-time",
+   "note": "name before createdAt",
+   "input": "{\"schemaVersion\":1,\"id\":\"4f525f09-3c12-449f-872b-c148c25e63ba\",\"name\":\"\",\"createdAt\":\"y\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "empty",
+     "field": "name"
+    }
+   }
+  },
+  {
+   "id": "precedence-missing-id-before-bad-name",
+   "note": "a missing id is reported before an invalid name",
+   "input": "{\"schemaVersion\":1,\"name\":\"\",\"createdAt\":\"2026-11-17T07:05:09Z\"}",
+   "expect": {
+    "ok": false,
+    "error": {
+     "code": "missing",
+     "field": "id"
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,134 @@
+:host {
+  display: grid;
+  /* One column that may shrink. Without minmax(0, 1fr) the implicit column grows to the bar's nowrap content, so a long lab name widens the whole page past the window. */
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 40px auto minmax(0, 1fr);
+  block-size: 100vh;
+  overflow: hidden;
+}
+
+.skip {
+  position: absolute;
+  inset-block-start: 4px;
+  inset-inline-start: 8px;
+  z-index: 4;
+  padding: 0.25rem 0.75rem;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--edge);
+  border-radius: 4px;
+  transform: translateY(-200%);
+}
+
+.skip:focus {
+  transform: none;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  background: var(--bar);
+  color: var(--on-bar);
+  font-size: 0.875rem;
+}
+
+.bar :focus-visible {
+  outline-color: var(--focus-bar);
+}
+
+.brand {
+  padding: 0 6px;
+  color: var(--on-bar-2);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+@media (max-width: 899px) {
+  .brand {
+    display: none;
+  }
+}
+
+nav {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+ol {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+li {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-inline-size: 0;
+}
+
+/* Only the last item (the lab name) shrinks, so the earlier items are never overlapped by a long name. */
+li:not(:last-child) {
+  flex: none;
+}
+
+.sep {
+  padding: 0 2px;
+  color: var(--on-bar-2);
+  opacity: 0.7;
+}
+
+.crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  block-size: 28px;
+  min-inline-size: 0;
+  padding: 0 8px;
+  border-radius: 4px;
+  color: var(--on-bar);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+a.crumb:hover {
+  background: var(--bar-hover);
+}
+
+.crumb[aria-current='page'] {
+  font-weight: 600;
+}
+
+.crumb .t {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-inline-size: 0;
+}
+
+.crumb .id {
+  flex: none;
+  color: var(--on-bar-2);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+}
+
+/* Only this area scrolls; the bar stays put. */
+.content {
+  min-block-size: 0;
+  overflow: auto;
+}
+
+/* A row of its own under the bar. Empty, it has no height; it is not display:none, which would remove it from the accessibility tree. */
+.status {
+  color: var(--muted);
+}
+
+.status:not(:empty) {
+  padding: 14px 16px;
+}

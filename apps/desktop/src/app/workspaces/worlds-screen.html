@@ -1,0 +1,47 @@
+<div class="worlds">
+  <nav class="rail" aria-label="Worlds">
+    <h2>Worlds</h2>
+    <a routerLink="/worlds" aria-current="page">Computer Foundations</a>
+  </nav>
+  <main [attr.aria-busy]="list().kind === 'loading'">
+    <h1 #heading tabindex="-1">Computer Foundations</h1>
+
+    @if (notice; as n) {
+      <div class="notice" role="status">
+        <strong>{{ n.title }}</strong>
+        @if (n.body) {
+          <p>{{ n.body }}</p>
+        }
+      </div>
+    }
+
+    <app-lab-create-form (created)="onCreated($event)" (unconfirmed)="onUnconfirmed()" />
+
+    <section aria-labelledby="labs-heading">
+      @let state = list();
+      <h2 #labsHeading class="sec" id="labs-heading" tabindex="-1">
+        Labs
+        @if (state.kind === 'ready') {
+          @let n = labCount(state.entries);
+          <span class="n">{{ n }} {{ n === 1 ? 'lab' : 'labs' }}</span>
+        }
+      </h2>
+      <!-- Always in the page, so a change to its text is announced. Empty unless loading. -->
+      <div class="loading" role="status">@if (state.kind === 'loading') {Loading labs…}</div>
+      @if (state.kind === 'failed') {
+        <div class="problem" role="alert">
+          <p><strong>{{ title() }}</strong></p>
+          <p>{{ state.message }}</p>
+          <button #retryButton type="button" class="btn" (click)="retry()">Try again</button>
+        </div>
+      } @else if (state.kind === 'ready' && state.entries.length === 0) {
+        <div class="empty">
+          <p>You have no labs in this world yet.</p>
+          <p>Create one to start. It is saved on this computer.</p>
+        </div>
+      } @else if (state.kind === 'ready') {
+        <app-lab-list [entries]="state.entries" [newId]="newId()" (retry)="retry()" />
+      }
+    </section>
+  </main>
+</div>
