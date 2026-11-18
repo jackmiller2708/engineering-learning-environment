@@ -1,12 +1,14 @@
-<div class="board">
-  <div class="intro">
-    @if (!changed()) {
-      <p class="example">Starting example</p>
-    }
+<div class="intro">
+  <div class="lines">
     <p>Change the bits and observe how each position contributes to the total.</p>
     <p class="rule">Read the pattern from left to right. Each position represents a power of two, starting with the rightmost position at 2⁰.</p>
   </div>
+  @if (!changed()) {
+    <p class="example">Starting example</p>
+  }
+</div>
 
+<div class="board">
   <table class="places">
     <caption class="sr">Position, Weight, Bit and Contribution of each Bit, highest Position first</caption>
     <tbody>
@@ -40,6 +42,7 @@
             <button
               type="button"
               class="bit"
+              [attr.data-position]="c.position"
               [class.on]="c.bit === 1"
               [attr.aria-label]="'Bit at Position ' + c.position + ', value ' + c.bit"
               (click)="flip(c.position)"
@@ -82,10 +85,17 @@
       <section class="prediction" aria-label="Prediction">
         <div class="head">
           <h2>Prediction</h2>
-          <button type="button" class="skip" (click)="skip()">Skip prediction</button>
+          @if (!locked() && !revealed() && selected() !== null) {
+            <span class="for">For Position {{ selected() }}.</span>
+          }
+          <span class="actions">
+            @if (revealed()) {
+              <button type="button" class="again" (click)="tryAnother()">Try another</button>
+            } @else {
+              <button type="button" class="skip" (click)="skip()">Skip prediction</button>
+            }
+          </span>
         </div>
-        <p class="prompt">Before changing a bit, predict how the total will change.</p>
-
         @if (revealed(); as r) {
           <div class="compare">
             <p class="where">Position {{ r.position }} (Weight {{ r.weight }})</p>
@@ -95,8 +105,7 @@
               <div><dt>Difference</dt><dd>{{ difference() }}</dd></div>
             </dl>
             <p class="why">The Bit went {{ r.from }} → {{ r.to }}, so the Total changed by {{ signed(r.actual) }}.</p>
-            <button type="button" class="again" (click)="tryAnother()">Try another</button>
-          </div>
+            </div>
         } @else if (locked(); as l) {
           <div class="armed">
             <p class="where">Position {{ l.position }}</p>
@@ -104,6 +113,7 @@
             <p class="hint">Flip the Bit at Position {{ l.position }} to see the actual change.</p>
           </div>
         } @else {
+          <p class="prompt">Before changing a bit, predict how the total will change.</p>
           <form class="entry" (submit)="lock($event)">
             <label>
               <span class="k">Change in Total</span>
@@ -122,15 +132,18 @@
           </form>
           @if (selected() === null) {
             <p class="hint">Select a position to predict its change.</p>
-          } @else {
-            <p class="hint">For Position {{ selected() }}.</p>
           }
         }
       </section>
     }
 
 <section class="inspector" aria-label="Inspector">
-  <h2>Inspector</h2>
+  <div class="head">
+    <h2>Inspector</h2>
+    @if (inspected()) {
+      <button type="button" class="deselect" (click)="deselect()">Deselect</button>
+    }
+  </div>
   @if (inspected(); as c) {
     <dl>
       <div><dt>Position</dt><dd>{{ c.position }}</dd></div>
@@ -146,7 +159,6 @@
         A 0 contributes 0.
       }
     </p>
-    <button type="button" class="deselect" (click)="deselect()">Deselect</button>
   } @else {
     <p class="empty">Select a position to inspect it.</p>
   }

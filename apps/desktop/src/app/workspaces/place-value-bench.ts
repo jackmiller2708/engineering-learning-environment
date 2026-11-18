@@ -122,6 +122,8 @@ export class PlaceValueBench {
     const change = this.draftValue();
     if (position === null || change === null || this.locked() || this.revealed()) return;
     this.locked.set({ position, change });
+    // The Lock button and the field leave the page, so focus goes to the next thing the learner does: flip that Bit.
+    this.focusAfterRender(`button.bit[data-position="${position}"]`);
   }
 
   /** Clears the prediction and the comparison, ready for a new experiment. */
@@ -129,6 +131,8 @@ export class PlaceValueBench {
     this.locked.set(null);
     this.revealed.set(null);
     this.draft.set('');
+    // The Try another button leaves the page; a new experiment starts at the field (when a Position is selected).
+    this.focusAfterRender('.prediction input:not(:disabled)');
   }
 
   protected skip(): void {
@@ -136,6 +140,8 @@ export class PlaceValueBench {
     this.locked.set(null);
     this.revealed.set(null);
     this.draft.set('');
+    // The whole panel leaves the page; focus returns to the Bench, at the Bit switch the learner would flip next.
+    this.focusAfterRender(`button.bit[data-position="${this.selected() ?? 0}"]`);
   }
 
   protected flip(position: number): void {
@@ -160,6 +166,11 @@ export class PlaceValueBench {
     this.lastPosition.set(position);
     this.announcement.set(`Position ${position} is now ${next.value[position]}. Total ${total(next.value)}.`);
     this.pulse(position);
+  }
+
+  /** Focus an element once the view has been updated, if it exists then. Used when the focused control has just been removed. */
+  private focusAfterRender(selector: string): void {
+    afterNextRender(() => this.host.nativeElement.querySelector<HTMLElement>(selector)?.focus(), { injector: this.injector });
   }
 
   /** A brief confirmation of what changed. Skipped when the learner prefers reduced motion or the platform cannot animate. */

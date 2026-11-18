@@ -1,3 +1,5 @@
+import { By } from '@angular/platform-browser';
+import { PlaceValueBench } from './place-value-bench';
 import { mount, q, root, settle, text } from '../test-app.testing';
 import { rendered, violations } from '../copy-scan.testing';
 import { FakeGateway, ID_A, listOf, valid } from './fake-gateway.testing';
@@ -362,6 +364,33 @@ describe('Prediction: optional, and the Bench works without it', () => {
     await flip(h, 2);
     expect(q(h, '.compare')).toBeNull();
     expect(total(h)).toBe('15');
+  });
+
+  it('moves focus to the predicted Bit when Lock removes itself, and to the field when Try another does', async () => {
+    const h = await open();
+    await lockIt(h, 2, '+4');
+    expect(document.activeElement).toBe(bits(h).find((b) => b.dataset['position'] === '2'));
+    await flip(h, 2);
+    await click(h, '.prediction .again');
+    expect(document.activeElement).toBe(field(h));
+  });
+
+  it('Skip prediction discards a pending lock in the component state, not only from view', async () => {
+    const h = await open();
+    await lockIt(h, 2, '+4');
+    // The panel disappears on Skip, so the DOM cannot show whether the lock survived. Read the state itself.
+    const state = h.fixture.debugElement.query(By.directive(PlaceValueBench)).componentInstance as unknown as {
+      locked(): unknown;
+      revealed(): unknown;
+      skipped(): boolean;
+    };
+    expect(state.locked()).not.toBeNull();
+    await click(h, '.prediction .skip');
+    expect(state.skipped()).toBe(true);
+    expect(state.locked()).toBeNull();
+    await flip(h, 2);
+    expect(state.revealed()).toBeNull(); // nothing can be revealed from the discarded prediction
+    expect(total(h)).toBe('15'); // flipping still works
   });
 
   it('uses no scores, grades, streaks or verdict words', async () => {
