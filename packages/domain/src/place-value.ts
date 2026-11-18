@@ -4,8 +4,8 @@ import { err, ok, type Result } from './result';
 // Nothing else: no arithmetic on patterns, no signed numbers, no hardware. Reference: the Binary Positional
 // Representation lesson. Widths 1 to 8 are a choice of the bench, not a limit of binary.
 
-export const MIN_WIDTH = 1;
-export const MAX_WIDTH = 8;
+export const PLACE_VALUE_MIN_WIDTH = 1;
+export const PLACE_VALUE_MAX_WIDTH = 8;
 
 export type Bit = 0 | 1;
 
@@ -21,7 +21,7 @@ export type PositionError = 'invalid_position';
 export type PatternError = WidthError | 'invalid_bit';
 
 function isWidth(n: number): boolean {
-  return Number.isInteger(n) && n >= MIN_WIDTH && n <= MAX_WIDTH;
+  return Number.isInteger(n) && n >= PLACE_VALUE_MIN_WIDTH && n <= PLACE_VALUE_MAX_WIDTH;
 }
 
 function seal(bits: readonly Bit[]): BitPattern {
@@ -52,7 +52,7 @@ export function formatPattern(pattern: BitPattern): string {
 
 /** The Weight of a Position: 2 multiplied by itself `position` times. Position 0 has Weight 1. */
 export function weightOf(position: number): Result<number, PositionError> {
-  if (!Number.isInteger(position) || position < 0 || position >= MAX_WIDTH) return err('invalid_position');
+  if (!Number.isInteger(position) || position < 0 || position >= PLACE_VALUE_MAX_WIDTH) return err('invalid_position');
   return ok(2 ** position);
 }
 

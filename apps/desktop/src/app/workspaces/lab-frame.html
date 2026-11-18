@@ -6,23 +6,20 @@
       <span class="meta">Created {{ created(v.workspace.createdAt) }}</span>
     </div>
     <section class="benchwrap" aria-label="Bench">
-      <div class="bench-note">
-        <strong>The bench is not available yet.</strong>
-        <span>This lab is saved on this computer. Nothing has been added to it.</span>
-      </div>
-      <dl class="facts">
-        <div><dt>World</dt><dd>{{ world }}</dd></div>
-        <div><dt>Lab</dt><dd class="name" dir="auto">{{ v.workspace.name }}</dd></div>
-        <div>
-          <dt>Created</dt>
-          <dd>
-            <time [attr.datetime]="v.workspace.createdAt">{{ created(v.workspace.createdAt) }}</time><br />
-            <span class="mono">{{ utc(v.workspace.createdAt) }}</span>
-          </dd>
-        </div>
-        <div><dt>ID</dt><dd class="mono">{{ v.workspace.id }}</dd></div>
-      </dl>
+      <app-place-value-bench />
     </section>
+    <dl class="facts">
+      <div><dt>World</dt><dd>{{ world }}</dd></div>
+      <div><dt>Lab</dt><dd class="name" dir="auto">{{ v.workspace.name }}</dd></div>
+      <div>
+        <dt>Created</dt>
+        <dd>
+          <time [attr.datetime]="v.workspace.createdAt">{{ created(v.workspace.createdAt) }}</time>
+          <span class="mono">{{ utc(v.workspace.createdAt) }}</span>
+        </dd>
+      </div>
+      <div><dt>ID</dt><dd class="mono">{{ v.workspace.id }}</dd></div>
+    </dl>
   } @else if (v.kind === 'problem') {
     @let p = describe(v.state);
     <div class="fullpage">

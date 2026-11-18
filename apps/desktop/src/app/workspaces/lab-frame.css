@@ -44,61 +44,47 @@ h1[tabindex='-1']:focus-visible {
 }
 
 .benchwrap {
-  position: relative;
   flex: 1;
   min-block-size: 0;
+  overflow: auto;
   background-color: var(--bench);
   background-image: radial-gradient(var(--grid) 1px, transparent 1.3px);
   background-size: 16px 16px;
   background-position: 8px 8px;
 }
 
-.bench-note {
-  position: absolute;
-  inset-block-start: 20px;
-  inset-inline-start: 24px;
-  max-inline-size: 46ch;
-}
-
-.bench-note strong {
-  display: block;
-}
-
-.bench-note span {
-  color: var(--muted);
-}
-
+/* The facts have their own row below the bench and never sit over it. */
 .facts {
-  position: absolute;
-  inset-block-end: 16px;
-  inset-inline-end: 16px;
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 20px;
   box-sizing: border-box;
-  inline-size: max-content;
-  max-inline-size: min(420px, calc(100% - 32px));
   margin: 0;
+  padding: 6px 16px;
   background: var(--panel);
-  border: 1px solid var(--edge);
+  border-block-start: 1px solid var(--rule);
   font-size: 0.75rem;
 }
 
 .facts > div {
-  display: grid;
-  grid-template-columns: 5.5rem minmax(0, 1fr);
-}
-
-.facts > div + div {
-  border-block-start: 1px solid var(--rule);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 6px;
+  min-inline-size: 0;
 }
 
 .facts dt,
 .facts dd {
   margin: 0;
-  padding: 5px 8px;
 }
 
 .facts dt {
   color: var(--muted);
-  border-inline-end: 1px solid var(--rule);
+}
+
+.facts time + .mono {
+  margin-inline-start: 6px;
 }
 
 .facts dd {

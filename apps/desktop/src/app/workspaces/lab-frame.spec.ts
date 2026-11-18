@@ -31,23 +31,24 @@ describe('Lab frame: ready', () => {
     expect(q(h, '.labbar .meta')?.textContent).toMatch(/^Created \d{4}-\d{2}-\d{2} \d{2}:\d{2}( \(GMT[+-]?[\d:]*\))?$/);
   });
 
-  it('shows the bench placeholder with exactly the specified copy, on the dotted substrate, and draws no regions', async () => {
+  it('shows the bench in the lab, on the dotted substrate, and draws no empty regions', async () => {
     const h = await mount(withTwo(), `/workspace/${ID_A}`);
     await settle(h);
     const bench = q(h, 'section.benchwrap')!;
     expect(bench.getAttribute('aria-label')).toBe('Bench');
-    const note = bench.querySelector('.bench-note')!;
-    expect(note.querySelector('strong')?.textContent).toBe('The bench is not available yet.');
-    // Two block-level lines: the sentence in bold, then the rest. Together they are the specified copy.
-    expect(note.querySelector('span')?.textContent).toBe('This lab is saved on this computer. Nothing has been added to it.');
-    expect(getComputedStyle(note.querySelector('strong')!).display).toBe('block');
-    expect(root(h).querySelectorAll('.ghost, .diag')).toHaveLength(0);
+    expect(bench.querySelector('app-place-value-bench')).not.toBeNull();
+    expect(text(h)).not.toContain('The bench is not available yet.');
+    expect(root(h).querySelectorAll('.ghost, .diag, aside, [aria-label="Library"], [aria-label="Investigation"]')).toHaveLength(0);
   });
 
-  it('shows the facts as a description list inside the bench: World, Lab, Created and the full ID', async () => {
+  it('shows the facts in their own row below the bench, never inside it: World, Lab, Created and the full ID', async () => {
     const h = await mount(withTwo(), `/workspace/${ID_B}`);
     await settle(h);
-    const dl = q(h, 'section.benchwrap dl')!;
+    const bench = q(h, 'section.benchwrap')!;
+    const dl = q(h, 'dl.facts')!;
+    expect(bench.contains(dl)).toBe(false);
+    expect(bench.compareDocumentPosition(dl) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(getComputedStyle(dl).position).not.toBe('absolute');
     const facts = [...dl.querySelectorAll(':scope > div')].map((row) => [row.querySelector('dt')!.textContent, row.querySelector('dd')!]);
     expect(facts.map(([k]) => k)).toEqual(['World', 'Lab', 'Created', 'ID']);
     const dd = (k: string) => facts.find(([n]) => n === k)![1] as HTMLElement;
@@ -95,7 +96,7 @@ describe('Lab frame: created times use the date of the lab, not today', () => {
     expect(localOffsetLabel(new Date(createdAt))).toBe(offset);
     const h = await labCreated(createdAt);
     expect(q(h, '.labbar .meta')?.textContent).toBe(`Created ${local} (${offset})`);
-    const created = [...root(h).querySelectorAll('.benchwrap dl > div')].find((r) => r.querySelector('dt')?.textContent === 'Created')!;
+    const created = [...root(h).querySelectorAll('dl.facts > div')].find((r) => r.querySelector('dt')?.textContent === 'Created')!;
     expect(created.querySelector('time')?.textContent).toBe(`${local} (${offset})`);
     expect(created.querySelector('.mono')?.textContent).toBe(formatCreated(createdAt));
   });

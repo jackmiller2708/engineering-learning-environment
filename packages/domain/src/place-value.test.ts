@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  MAX_WIDTH,
-  MIN_WIDTH,
+  PLACE_VALUE_MAX_WIDTH,
+  PLACE_VALUE_MIN_WIDTH,
   clearedPattern,
   contributions,
   flipBit,
@@ -28,7 +28,7 @@ function pattern(text: string): BitPattern {
 
 describe('limits', () => {
   it('supports widths 1 to 8', () => {
-    expect([MIN_WIDTH, MAX_WIDTH]).toEqual([1, 8]);
+    expect([PLACE_VALUE_MIN_WIDTH, PLACE_VALUE_MAX_WIDTH]).toEqual([1, 8]);
   });
 });
 

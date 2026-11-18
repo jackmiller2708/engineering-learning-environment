@@ -8,6 +8,7 @@ import { StatusMessage } from '../status-message';
 import { WORLD_NAME } from '../world';
 import { describeLabState, type LabState } from './describe-error';
 import { LastLabPointer } from './last-lab-pointer';
+import { PlaceValueBench } from './place-value-bench';
 import { formatCreated, formatCreatedLocal, localOffsetLabel } from './workspace-format';
 import { WORKSPACE_GATEWAY, type WorkspaceDto } from './workspace-gateway';
 
@@ -18,12 +19,12 @@ type View =
 
 /**
  * One lab. The address is the identity: `/workspace/:id` (the internal name is kept). The id is validated,
- * then looked up in the host's list. Nothing is shown as open unless the host confirms it. The bench is not
- * built yet: the frame shows the lab's real facts and says so. Host `message` text is never shown.
+ * then looked up in the host's list. Nothing is shown as open unless the host confirms it. The bench is the
+ * place-value bench; the lab's real facts sit in their own row below it. Host `message` text is never shown.
  */
 @Component({
   selector: 'app-lab-frame',
-  imports: [RouterLink],
+  imports: [RouterLink, PlaceValueBench],
   templateUrl: './lab-frame.html',
   styleUrl: './lab-frame.css',
 })

@@ -202,7 +202,7 @@ describe('copy sweep', () => {
     const h = await mount(gatewayOf(valid(ID_A, 'Half adder')), `/workspace/${ID_A}`);
     await settle(h);
     const text = rendered(h);
-    expect(text).toContain('The bench is not available yet.');
+    expect(text).toContain('Change the bits and observe how each position contributes to the total.');
     expect(text).toContain(`Half adder — Computer Foundations — ${APP}`); // document.title
     expect(text.match(/Half adder/g)!.length).toBeGreaterThan(2); // heading, facts, title attribute, document.title
     q(h, 'main')!.append(Object.assign(document.createElement('p'), { textContent: 'workspace.json' }));
@@ -368,7 +368,7 @@ describe('copy sweep: the whole application shell (T1)', () => {
   it('covers the skip link, brand, breadcrumb (world and active lab), labels and routed content on a ready lab', async () => {
     const el = await shell(gatewayOf(valid(ID_A, 'Half adder')), `/workspace/${ID_A}`);
     const text = shellText(el);
-    for (const expected of ['Skip to main content', APP, 'You are here', 'Worlds', 'Computer Foundations', 'Half adder', ID_A.slice(0, 8), 'The bench is not available yet.'])
+    for (const expected of ['Skip to main content', APP, 'You are here', 'Worlds', 'Computer Foundations', 'Half adder', ID_A.slice(0, 8), 'Starting example'])
       expect(text, `the scan sees "${expected}"`).toContain(expected);
     assertClean(el, 'ready lab with shell');
   });

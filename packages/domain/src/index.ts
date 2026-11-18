@@ -28,8 +28,8 @@ export {
 } from './workspace';
 export { decodeManifest, encodeManifest, type ManifestError } from './manifest';
 export {
-  MAX_WIDTH,
-  MIN_WIDTH,
+  PLACE_VALUE_MAX_WIDTH,
+  PLACE_VALUE_MIN_WIDTH,
   clearedPattern,
   contributions,
   flipBit,

@@ -1,0 +1,56 @@
+<div class="board">
+  <div class="intro">
+    @if (!changed()) {
+      <p class="example">Starting example</p>
+    }
+    <p>Change the bits and observe how each position contributes to the total.</p>
+    <p class="rule">Read the pattern from left to right. Each position represents a power of two, starting with the rightmost position at 2⁰.</p>
+  </div>
+
+  <table class="places">
+    <caption class="sr">Position, Weight, Bit and Contribution of each Bit, highest Position first</caption>
+    <tbody>
+      <tr>
+        <th scope="row">Position</th>
+        @for (c of cells(); track c.position) {
+          <td [class.just]="justChanged(c.position)">{{ c.position }}</td>
+        }
+      </tr>
+      <tr>
+        <th scope="row">Weight</th>
+        @for (c of cells(); track c.position) {
+          <td [class.just]="justChanged(c.position)">{{ c.weight }}</td>
+        }
+      </tr>
+      <tr>
+        <th scope="row">Bit</th>
+        @for (c of cells(); track c.position) {
+          <td [class.just]="justChanged(c.position)">
+            <button
+              type="button"
+              class="bit"
+              [class.on]="c.bit === 1"
+              [attr.aria-label]="'Bit at Position ' + c.position + ', value ' + c.bit"
+              (click)="flip(c.position)"
+            >
+              {{ c.bit }}
+            </button>
+          </td>
+        }
+      </tr>
+      <tr>
+        <th scope="row">Contribution</th>
+        @for (c of cells(); track c.position) {
+          <td [class.just]="justChanged(c.position)">{{ c.contribution }}</td>
+        }
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="result">
+    <p class="total"><span class="label">Total</span> <span class="value">{{ total() }}</span></p>
+    <p class="sum">{{ sum() }} = {{ total() }}</p>
+  </div>
+  <!-- Polite live region, present from the start and empty until a Bit changes. -->
+  <p class="last" aria-live="polite" aria-atomic="true">{{ announcement() }}</p>
+</div>

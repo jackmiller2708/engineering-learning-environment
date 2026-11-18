@@ -19,9 +19,9 @@ describe('public API', () => {
       [
         'APP_NAME',
         'MAX_TIMESTAMP',
-        'MAX_WIDTH',
+        'PLACE_VALUE_MAX_WIDTH',
         'MIN_TIMESTAMP',
-        'MIN_WIDTH',
+        'PLACE_VALUE_MIN_WIDTH',
         'WORKSPACE_NAME_MAX_LENGTH',
         'WORKSPACE_SCHEMA_VERSION',
         'clearedPattern',
