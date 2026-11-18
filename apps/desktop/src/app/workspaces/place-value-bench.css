@@ -15,7 +15,7 @@
   min-inline-size: 0;
   box-sizing: border-box;
   margin: 0;
-  padding: 16px;
+  padding: 12px 16px;
   background: var(--panel);
   border: 1px solid var(--edge);
   border-radius: 6px;
@@ -51,7 +51,7 @@
 
 .places {
   inline-size: 100%;
-  margin-block: 12px;
+  margin-block: 8px;
   border-collapse: collapse;
   table-layout: fixed;
   text-align: center;
@@ -79,32 +79,95 @@
   box-shadow: inset 0 2px 0 var(--accent);
 }
 
+/* A physical switch: the thumb sits at the top for 1 and the bottom for 0, and always shows its digit. */
 .bit {
+  position: relative;
   box-sizing: border-box;
   inline-size: 100%;
-  max-inline-size: 56px;
-  block-size: 44px;
-  background: var(--raised);
+  max-inline-size: 44px;
+  block-size: 58px;
+  padding: 0;
+  background: var(--bench);
   border: 1px solid var(--edge);
-  border-radius: 4px;
+  border-radius: 10px;
+  box-shadow: inset 0 2px 5px oklch(0 0 0 / 0.35);
   color: var(--text);
-  font: inherit;
-  font-size: 1.25rem;
-  font-weight: 700;
   cursor: pointer;
 }
 
 .bit.on {
+  background: var(--new-tint);
+  border-color: var(--accent);
+}
+
+.thumb {
+  position: absolute;
+  inset-block-start: 3px;
+  inset-inline: 3px;
+  display: grid;
+  place-items: center;
+  block-size: 28px;
+  background: var(--raised);
+  border: 1px solid var(--edge);
+  border-radius: 7px;
+  box-shadow: 0 1px 2px oklch(0 0 0 / 0.3);
+  font-family: var(--mono);
+  font-size: 1.125rem;
+  font-weight: 700;
+  transform: translateY(23px);
+  transition: transform 140ms cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.bit.on .thumb {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--on-accent);
+  transform: translateY(0);
 }
 
+.bit:active .thumb {
+  filter: brightness(1.08);
+}
+
+.num {
+  display: inline-block;
+  font-size: 1.0625rem;
+}
+
+/* How much this Position adds, as a share of the largest Weight shown. */
+.meter {
+  position: relative;
+  display: block;
+  inline-size: 100%;
+  max-inline-size: 44px;
+  block-size: 4px;
+  margin: 3px auto 0;
+  overflow: hidden;
+  background: var(--rule);
+  border-radius: 2px;
+}
+
+.meter::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  transform: scaleX(var(--fill, 0));
+  transform-origin: left;
+  transition: transform 180ms cubic-bezier(0.645, 0.045, 0.355, 1);
+}
+
+/* The Total is the instrument reading. */
 .result {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
   gap: 4px 20px;
+  padding: 6px 14px;
+  background: var(--bench);
+  border: 1px solid var(--edge);
+  border-radius: 8px;
+  box-shadow: inset 0 2px 6px oklch(0 0 0 / 0.25);
 }
 
 .result p {
@@ -118,10 +181,22 @@
 }
 
 .total .value {
+  display: inline-block;
+  min-inline-size: 2ch;
   margin-inline-start: 8px;
   font-family: var(--mono);
-  font-size: 2rem;
+  font-size: 2.5rem;
+  font-variant-numeric: tabular-nums;
   font-weight: 700;
+  line-height: 1;
+}
+
+.term {
+  display: inline-block;
+}
+
+.term.zero {
+  color: var(--muted);
 }
 
 .sum {
@@ -160,8 +235,6 @@
 }
 
 .inspector {
-  flex: 1 1 240px;
-  max-inline-size: 320px;
   box-sizing: border-box;
   padding: 16px;
   background: var(--panel);
@@ -215,4 +288,206 @@
   font: inherit;
   font-weight: 600;
   cursor: pointer;
+}
+
+/* Prediction: an experiment set up before the flip, revealed after it. */
+.side {
+  flex: 1 1 240px;
+  display: grid;
+  gap: 12px;
+  max-inline-size: 320px;
+  min-inline-size: 0;
+}
+
+.prediction {
+  box-sizing: border-box;
+  padding: 12px 16px;
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  border-radius: 6px;
+}
+
+.prediction .head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.prediction h2 {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.prediction .prompt {
+  margin: 4px 0 8px;
+  font-size: 0.8125rem;
+}
+
+.prediction .k {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.prediction .hint {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.skip {
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.75rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.entry {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.entry label {
+  display: grid;
+  gap: 2px;
+}
+
+.entry input {
+  box-sizing: border-box;
+  inline-size: 8rem;
+  block-size: 32px;
+  padding: 0 8px;
+  background: var(--bench);
+  border: 1px solid var(--edge);
+  border-radius: 4px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 1rem;
+}
+
+.entry input:disabled {
+  opacity: 0.55;
+}
+
+.lock,
+.again {
+  block-size: 32px;
+  padding: 0 14px;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  color: var(--on-accent);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.lock:disabled {
+  background: var(--raised);
+  border-color: var(--edge);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+.armed .where,
+.compare .where {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.armed .mine {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 2px 0 0;
+}
+
+.armed .v {
+  font-family: var(--mono);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+/* Locked: a steady outline, as of an instrument that is armed. */
+.armed {
+  padding: 8px 10px;
+  border: 1px dashed var(--accent);
+  border-radius: 6px;
+}
+
+.compare {
+  animation: reveal 200ms cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.compare dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 4px 0 6px;
+}
+
+.compare dt {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.compare dd {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+/* The actual change arrives a beat after the prediction, with the direction it went (not a verdict). */
+.compare .actual dd {
+  animation: arrive 260ms 120ms cubic-bezier(0.165, 0.84, 0.44, 1) backwards;
+}
+
+.compare .actual dd.up::before {
+  content: '▲ ';
+  font-size: 0.75em;
+}
+
+.compare .actual dd.down::before {
+  content: '▼ ';
+  font-size: 0.75em;
+}
+
+.compare .why {
+  margin: 0 0 8px;
+  font-size: 0.8125rem;
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .thumb,
+  .meter::after,
+  .compare,
+  .compare .actual dd {
+    animation: none;
+    transition: none;
+  }
 }

@@ -44,7 +44,7 @@
               [attr.aria-label]="'Bit at Position ' + c.position + ', value ' + c.bit"
               (click)="flip(c.position)"
             >
-              {{ c.bit }}
+              <span class="thumb">{{ c.bit }}</span>
             </button>
           </td>
         }
@@ -52,7 +52,10 @@
       <tr>
         <th scope="row">Contribution</th>
         @for (c of cells(); track c.position) {
-          <td [class.just]="justChanged(c.position)" [class.sel]="selected() === c.position">{{ c.contribution }}</td>
+          <td [class.just]="justChanged(c.position)" [class.sel]="selected() === c.position">
+            <span class="num" [attr.data-col]="c.position">{{ c.contribution }}</span>
+            <span class="meter" [style.--fill]="c.share"></span>
+          </td>
         }
       </tr>
     </tbody>
@@ -60,11 +63,71 @@
 
   <div class="result">
     <p class="total"><span class="label">Total</span> <span class="value">{{ total() }}</span></p>
-    <p class="sum">{{ sum() }} = {{ total() }}</p>
+    <p class="sum">
+      @for (c of cells(); track c.position; let last = $last) {
+        <span class="term" [class.zero]="c.contribution === 0" [attr.data-col]="c.position">{{ c.contribution }}</span>
+        @if (!last) {
+          <span class="op"> + </span>
+        }
+      }
+      <span class="op"> = </span><span>{{ total() }}</span>
+    </p>
   </div>
   <!-- Polite live region, present from the start and empty until a Bit changes. -->
   <p class="last" aria-live="polite" aria-atomic="true">{{ announcement() }}</p>
 </div>
+
+<div class="side">
+    @if (!skipped()) {
+      <section class="prediction" aria-label="Prediction">
+        <div class="head">
+          <h2>Prediction</h2>
+          <button type="button" class="skip" (click)="skip()">Skip prediction</button>
+        </div>
+        <p class="prompt">Before changing a bit, predict how the total will change.</p>
+
+        @if (revealed(); as r) {
+          <div class="compare">
+            <p class="where">Position {{ r.position }} (Weight {{ r.weight }})</p>
+            <dl>
+              <div><dt>Your prediction</dt><dd>{{ signed(r.predicted) }}</dd></div>
+              <div class="actual"><dt>Actual change</dt><dd [class.up]="r.actual > 0" [class.down]="r.actual < 0">{{ signed(r.actual) }}</dd></div>
+              <div><dt>Difference</dt><dd>{{ difference() }}</dd></div>
+            </dl>
+            <p class="why">The Bit went {{ r.from }} → {{ r.to }}, so the Total changed by {{ signed(r.actual) }}.</p>
+            <button type="button" class="again" (click)="tryAnother()">Try another</button>
+          </div>
+        } @else if (locked(); as l) {
+          <div class="armed">
+            <p class="where">Position {{ l.position }}</p>
+            <p class="mine"><span class="k">Your prediction</span> <span class="v">{{ signed(l.change) }}</span></p>
+            <p class="hint">Flip the Bit at Position {{ l.position }} to see the actual change.</p>
+          </div>
+        } @else {
+          <form class="entry" (submit)="lock($event)">
+            <label>
+              <span class="k">Change in Total</span>
+              <input
+                type="text"
+                inputmode="numeric"
+                autocomplete="off"
+                maxlength="5"
+                placeholder="+4 or −8"
+                [disabled]="selected() === null"
+                [value]="draft()"
+                (input)="typeDraft($any($event.target).value)"
+              />
+            </label>
+            <button type="submit" class="lock" [disabled]="!canLock()">Lock prediction</button>
+          </form>
+          @if (selected() === null) {
+            <p class="hint">Select a position to predict its change.</p>
+          } @else {
+            <p class="hint">For Position {{ selected() }}.</p>
+          }
+        }
+      </section>
+    }
 
 <section class="inspector" aria-label="Inspector">
   <h2>Inspector</h2>
@@ -88,3 +151,4 @@
     <p class="empty">Select a position to inspect it.</p>
   }
 </section>
+</div>

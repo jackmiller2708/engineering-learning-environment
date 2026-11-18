@@ -43,11 +43,11 @@ describe('Place-value bench: the starting example', () => {
     expect(q(h, '.example')!.textContent).toBe('Starting example');
   });
 
-  it('adds no prediction, width or Clear controls: only Bit switches and Position selectors', async () => {
+  it('adds no width or Clear controls: its only controls are Bit switches, Position selectors and the prediction controls', async () => {
     const h = await open();
-    const names = [...root(h).querySelectorAll('button, input, select')].map((e) => e.getAttribute('aria-label') ?? e.textContent!.trim());
-    expect(names.filter((n) => !/^(Bit at|Inspect) Position/.test(n))).toEqual([]);
-    expect(text(h)).not.toMatch(/predict|clear|width/i);
+    const names = [...root(h).querySelectorAll('button, input, select')].map((e) => e.getAttribute('aria-label') ?? e.textContent!.trim() ?? e.tagName);
+    expect(names.filter((n) => !/^(Bit at|Inspect) Position/.test(n))).toEqual(['Skip prediction', '', 'Lock prediction']); // the text field has no button name
+    expect(text(h)).not.toMatch(/clear|width/i);
   });
 
   it('passes the learner-copy scan', async () => {
@@ -296,5 +296,280 @@ describe('Inspector: staying in step with the Bench', () => {
     await select(h, 3);
     expect(violations(rendered(root(h)))).toEqual([]);
     expect(root(h).querySelectorAll('[aria-label="Library"], [aria-label="Investigation"]')).toHaveLength(0);
+  });
+});
+
+const field = (h: H) => q<HTMLInputElement>(h, '.prediction input')!;
+const typeChange = async (h: H, value: string) => {
+  const f = field(h);
+  f.value = value;
+  f.dispatchEvent(new Event('input'));
+  await settle(h);
+};
+const lockBtn = (h: H) => q<HTMLButtonElement>(h, '.prediction .lock')!;
+const click = async (h: H, selector: string) => {
+  q<HTMLButtonElement>(h, selector)!.click();
+  await settle(h);
+};
+const lockIt = async (h: H, position: number, value: string) => {
+  await select(h, position);
+  await typeChange(h, value);
+  await click(h, '.prediction .lock');
+};
+const compare = (h: H) => {
+  const rows = [...root(h).querySelectorAll('.prediction .compare dl > div')];
+  return Object.fromEntries(rows.map((r) => [r.querySelector('dt')!.textContent, r.querySelector('dd')!.textContent!.trim()]));
+};
+const prediction = (h: H) => q(h, 'section[aria-label="Prediction"]');
+
+describe('Prediction: optional, and the Bench works without it', () => {
+  it('opens with the approved prompt and labels, a disabled field until a Position is selected, and Lock disabled', async () => {
+    const h = await open();
+    const p = prediction(h)!;
+    expect(p.querySelector('h2')!.textContent).toBe('Prediction');
+    expect(p.textContent).toContain('Before changing a bit, predict how the total will change.');
+    expect(p.textContent).toContain('Change in Total');
+    expect(p.textContent).toContain('Skip prediction');
+    expect(field(h).disabled).toBe(true);
+    expect(field(h).placeholder).toBe('+4 or −8'); // a signed change, not a target Total
+    expect(lockBtn(h).disabled).toBe(true);
+    expect(p.textContent).toContain('Select a position to predict its change.');
+  });
+
+  it('flipping works exactly as before with no prediction, and shows no comparison', async () => {
+    const h = await open();
+    await flip(h, 2);
+    expect(total(h)).toBe('15');
+    expect(q(h, '.prediction .compare')).toBeNull();
+    expect(q(h, '.prediction .armed')).toBeNull();
+  });
+
+  it('Skip prediction hides the whole interaction for the session, and the Bench still works', async () => {
+    const h = await open();
+    await click(h, '.prediction .skip');
+    expect(prediction(h)).toBeNull();
+    await flip(h, 3);
+    expect(total(h)).toBe('3');
+    await select(h, 2);
+    expect(props(h)['Position']).toBe('2');
+    expect(text(h)).not.toContain('Skip prediction');
+  });
+
+  it('Skip prediction also drops a locked prediction, and a later flip of its Position reveals nothing', async () => {
+    const h = await open();
+    await lockIt(h, 2, '+4');
+    await click(h, '.prediction .skip');
+    await flip(h, 2);
+    expect(q(h, '.compare')).toBeNull();
+    expect(total(h)).toBe('15');
+  });
+
+  it('uses no scores, grades, streaks or verdict words', async () => {
+    const h = await open();
+    await lockIt(h, 2, '+9');
+    await flip(h, 2);
+    expect(prediction(h)!.textContent).not.toMatch(/\b(correct|incorrect|wrong|right|score|points?|streak|grade|well done|try again|great)\b/i);
+  });
+});
+
+describe('Prediction: entering and locking', () => {
+  it('Lock needs a selected Position and a signed whole number', async () => {
+    const h = await open();
+    await select(h, 2);
+    expect(field(h).disabled).toBe(false);
+    expect(lockBtn(h).disabled).toBe(true); // nothing typed
+    for (const bad of ['', 'abc', '4.5', '1e3', '++4', '4 4', '12345678', '-']) {
+      await typeChange(h, bad);
+      expect(lockBtn(h).disabled, `"${bad}" must not lock`).toBe(true);
+    }
+    for (const good of ['4', '+4', '-8', '−8', ' 12 ', '0']) {
+      await typeChange(h, good);
+      expect(lockBtn(h).disabled, `"${good}" must lock`).toBe(false);
+    }
+  });
+
+  it('locks to the Position selected at that moment, and shows the fixed Position and value without any actual change', async () => {
+    const h = await open();
+    await lockIt(h, 2, '+4');
+    const armed = q(h, '.prediction .armed')!;
+    expect(armed.textContent).toContain('Position 2');
+    expect(armed.textContent).toContain('Your prediction');
+    expect(armed.textContent).toContain('+4');
+    expect(armed.textContent).toContain('Flip the Bit at Position 2 to see the actual change.');
+    expect(q(h, '.prediction input')).toBeNull(); // value and Position are now fixed
+    expect(prediction(h)!.textContent).not.toContain('Actual change'); // not revealed by locking
+    expect(pattern(h)).toBe('1011'); // locking is not a flip
+    expect(total(h)).toBe('11');
+  });
+
+  it('Enter in the field locks, like the button', async () => {
+    const h = await open();
+    await select(h, 3);
+    await typeChange(h, '-8');
+    q<HTMLFormElement>(h, '.prediction form')!.dispatchEvent(new Event('submit', { cancelable: true }));
+    await settle(h);
+    expect(q(h, '.prediction .armed')!.textContent).toContain('\u22128');
+  });
+
+  it('selecting another Position after locking does not move or change the prediction', async () => {
+    const h = await open();
+    await lockIt(h, 2, '+4');
+    await select(h, 0);
+    const armed = q(h, '.prediction .armed')!;
+    expect(armed.textContent).toContain('Position 2');
+    expect(armed.textContent).toContain('+4');
+    expect(props(h)['Position']).toBe('0'); // the Inspector follows the selection as before
+  });
+});
+
+describe('Prediction: flipping', () => {
+  it('flipping a different Position leaves the prediction locked and pending, and reveals nothing', async () => {
+    const h = await open();
+    await lockIt(h, 2, '+4');
+    await flip(h, 0);
+    await flip(h, 3);
+    expect(q(h, '.prediction .armed')!.textContent).toContain('Position 2');
+    expect(q(h, '.compare')).toBeNull();
+    expect(prediction(h)!.textContent).not.toContain('Actual change');
+    expect(total(h)).toBe('2'); // 0010: both flips happened
+  });
+
+  it('flipping the predicted Position reveals prediction, actual change and difference together (a correct prediction)', async () => {
+    const h = await open();
+    await lockIt(h, 2, '+4');
+    await flip(h, 2); // 1011 -> 1111
+    expect(compare(h)).toEqual({ 'Your prediction': '+4', 'Actual change': '+4', Difference: '0' });
+    expect(q(h, '.compare .why')!.textContent!.trim()).toBe('The Bit went 0 → 1, so the Total changed by +4.');
+    expect(q(h, '.compare .where')!.textContent!.trim()).toBe('Position 2 (Weight 4)');
+    expect(total(h)).toBe('15');
+    expect(q(h, '.prediction .armed')).toBeNull();
+  });
+
+  it('handles a wrong prediction neutrally, with the signed difference (predicted +6, actual +4)', async () => {
+    const h = await open();
+    await lockIt(h, 2, '6');
+    await flip(h, 2);
+    expect(compare(h)).toEqual({ 'Your prediction': '+6', 'Actual change': '+4', Difference: '\u22122' });
+    expect(prediction(h)!.textContent).not.toMatch(/\b(correct|wrong|incorrect)\b/i);
+    expect([...q(h, '.compare')!.classList]).toEqual(['compare']); // no success or failure class
+    expect([...q(h, '.compare dl')!.querySelectorAll('dd')].every((d) => !/\b(ok|good|bad|fail|success|error)\b/.test(d.className))).toBe(true);
+  });
+
+  it('shows the right signed actual change for a Bit that goes down (Position 3: 1 to 0, predicted +8)', async () => {
+    const h = await open();
+    await lockIt(h, 3, '+8');
+    await flip(h, 3); // 1011 -> 0011, Total 3
+    expect(compare(h)).toEqual({ 'Your prediction': '+8', 'Actual change': '\u22128', Difference: '\u221216' });
+    expect(q(h, '.compare .why')!.textContent!.trim()).toBe('The Bit went 1 → 0, so the Total changed by \u22128.');
+    expect(total(h)).toBe('3');
+  });
+
+  it('matches a prediction written with a hyphen or a minus sign for a downward flip', async () => {
+    const h = await open();
+    await lockIt(h, 3, '-8');
+    await flip(h, 3);
+    expect(compare(h)['Your prediction']).toBe('\u22128');
+    expect(compare(h)['Difference']).toBe('0');
+  });
+
+  it('keeps the comparison visible through further flips, selections and a second flip of the same Position', async () => {
+    const h = await open();
+    await lockIt(h, 2, '+4');
+    await flip(h, 2);
+    const before = compare(h);
+    await flip(h, 2); // back to 0: the recorded result is not overwritten
+    await flip(h, 0);
+    await select(h, 1);
+    expect(compare(h)).toEqual(before);
+    expect(q(h, '.prediction input')).toBeNull(); // no new prediction until Try another
+  });
+});
+
+describe('Prediction: Try another', () => {
+  it('clears the comparison and the prediction, and offers a fresh field for a new experiment', async () => {
+    const h = await open();
+    await lockIt(h, 2, '+4');
+    await flip(h, 2);
+    await click(h, '.prediction .again');
+    expect(q(h, '.compare')).toBeNull();
+    expect(q(h, '.armed')).toBeNull();
+    expect(field(h).value).toBe('');
+    expect(lockBtn(h).disabled).toBe(true);
+    expect(pattern(h)).toBe('1111'); // the Bench is untouched
+    expect(total(h)).toBe('15');
+  });
+
+  it('allows a second experiment on another Position, tied to that Position', async () => {
+    const h = await open();
+    await lockIt(h, 2, '+4');
+    await flip(h, 2);
+    await click(h, '.prediction .again');
+    await lockIt(h, 3, '-8');
+    await flip(h, 3);
+    expect(compare(h)).toEqual({ 'Your prediction': '\u22128', 'Actual change': '\u22128', Difference: '0' });
+    expect(total(h)).toBe('7');
+  });
+
+  it('keeps the selection when starting another experiment', async () => {
+    const h = await open();
+    await lockIt(h, 2, '+4');
+    await flip(h, 2);
+    await click(h, '.prediction .again');
+    expect(pos(h, 2).getAttribute('aria-pressed')).toBe('true');
+    expect(field(h).disabled).toBe(false);
+  });
+});
+
+describe('Prediction: the Inspector and the Bench stay in step throughout', () => {
+  it('shows the selected Position correctly through lock, flip, reveal and Try another', async () => {
+    const h = await open();
+    await select(h, 2);
+    await typeChange(h, '+4');
+    await click(h, '.prediction .lock');
+    expect(props(h)).toEqual({ Position: '2', Bit: '0', Weight: '22 = 4', Contribution: '0 × 4 = 0' });
+    await flip(h, 2);
+    expect(props(h)).toEqual({ Position: '2', Bit: '1', Weight: '22 = 4', Contribution: '1 × 4 = 4' });
+    expect(inspector(h).textContent).not.toContain('Actual change'); // the comparison is not duplicated in the Inspector
+    await click(h, '.prediction .again');
+    expect(props(h)['Bit']).toBe('1');
+    expect(q(h, '.sum')!.textContent).toBe('8 + 4 + 2 + 1 = 15');
+  });
+
+  it('does not reveal the actual change in the Inspector before the flip', async () => {
+    const h = await open();
+    await lockIt(h, 2, '+4');
+    expect(inspector(h).textContent).not.toMatch(/flipping|would|\+4|actual/i);
+  });
+
+  it('starts a reopened Lab with no prediction, nothing locked and the prompt showing', async () => {
+    const h = await open();
+    await click(h, '.prediction .skip');
+    await h.navigateByUrl('/worlds');
+    await settle(h);
+    await h.navigateByUrl(`/workspace/${ID_A}`);
+    await settle(h);
+    expect(prediction(h)).not.toBeNull();
+    expect(q(h, '.armed')).toBeNull();
+  });
+
+  it('keeps the starting example behaviour: locking does not remove the label, the first flip does, for good', async () => {
+    const h = await open();
+    await lockIt(h, 2, '+4');
+    expect(q(h, '.example')).not.toBeNull();
+    await flip(h, 2);
+    expect(q(h, '.example')).toBeNull();
+    await click(h, '.prediction .again');
+    await flip(h, 2); // 1011 rebuilt
+    expect(rowText(h, 'Bit').join('')).toBe('1011');
+    expect(q(h, '.example')).toBeNull();
+  });
+
+  it('passes the learner-copy scan in every state and uses no banned vocabulary', async () => {
+    const h = await open();
+    expect(violations(rendered(root(h)))).toEqual([]);
+    await lockIt(h, 2, '+4');
+    expect(violations(rendered(root(h)))).toEqual([]);
+    await flip(h, 2);
+    expect(violations(rendered(root(h)))).toEqual([]);
   });
 });
