@@ -1,5 +1,6 @@
-// What to show at a moment in time while a change travels through the circuit. A pure function of the old and new
-// state and the time since the change, so both renderers show exactly the same thing at the same instant.
+// What to show at a moment in time while a change travels through the circuit. A pure function of the view the
+// change started from, the circuit state it is heading to, and the time since it began. Starting from the view
+// (not from the previous logical state) means an interrupted change simply carries on from what is on screen.
 import { evaluate, type Line, type RelayState } from './relay-circuit';
 
 export interface RelayView {
@@ -23,30 +24,30 @@ export const STILL: Timing = { stageMs: 0, knobMs: 0 };
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
 
-/** A wire coming on fills along its length from `start`; a wire going off goes dark when its stage begins. */
-function reach(was: boolean, now: boolean, age: number, start: number, span: number): number {
-  if (was === now) return now ? 1 : 0;
-  if (now) return span === 0 ? 1 : clamp01((age - start) / span);
-  return age >= start ? 0 : 1;
+/** Moves from `from` to `to` over `span` ms, beginning `delay` ms in. Holds `from` until then. */
+function ease(from: number, to: number, age: number, delay: number, span: number): number {
+  const t = span === 0 ? (age >= delay ? 1 : 0) : clamp01((age - delay) / span);
+  return t >= 1 ? to : from + (to - from) * t; // exactly `to` once arrived, with no rounding left over
 }
 
-export function relayView(from: RelayState, to: RelayState, ageMs: number, timing: Timing = MOTION): RelayView {
-  const was = evaluate(from);
-  const now = evaluate(to);
-  const { stageMs } = timing;
-  const knob = (line: Line) => {
-    const target = to[line] ? 1 : 0;
-    if (from[line] === to[line] || timing.knobMs === 0) return target;
-    const t = clamp01(ageMs / timing.knobMs);
-    return (from[line] ? 1 : 0) + (target - (from[line] ? 1 : 0)) * t;
-  };
+/** The view of a circuit that has fully settled. */
+export function viewOf(state: RelayState): RelayView {
+  const s = evaluate(state);
+  const n = (b: boolean) => (b ? 1 : 0);
+  return { a: n(s.a), b: n(s.b), out: n(s.out), gate: s.gate, beacon: s.beacon, knob: { a: n(state.a), b: n(state.b) } };
+}
+
+/** The view `ageMs` after a change to `to` began while `from` was on screen. Settles into `viewOf(to)`. */
+export function relayView(from: RelayView, to: RelayState, ageMs: number, timing: Timing = MOTION): RelayView {
+  const target = viewOf(to);
+  const { stageMs, knobMs } = timing;
   return {
-    a: reach(was.a, now.a, ageMs, 0, stageMs),
-    b: reach(was.b, now.b, ageMs, 0, stageMs),
-    gate: ageMs >= stageMs ? now.gate : was.gate,
-    out: reach(was.out, now.out, ageMs, stageMs, stageMs),
-    beacon: ageMs >= 2 * stageMs ? now.beacon : was.beacon,
-    knob: { a: knob('a'), b: knob('b') },
+    a: ease(from.a, target.a, ageMs, 0, stageMs),
+    b: ease(from.b, target.b, ageMs, 0, stageMs),
+    gate: ageMs >= stageMs ? target.gate : from.gate,
+    out: ease(from.out, target.out, ageMs, stageMs, stageMs),
+    beacon: ageMs >= 2 * stageMs ? target.beacon : from.beacon,
+    knob: { a: ease(from.knob.a, target.knob.a, ageMs, 0, knobMs), b: ease(from.knob.b, target.knob.b, ageMs, 0, knobMs) },
   };
 }
 

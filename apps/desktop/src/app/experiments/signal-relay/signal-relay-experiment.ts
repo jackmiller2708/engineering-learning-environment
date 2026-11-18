@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signa
 import { DARK, evaluate, toggleLine, type Line, type RelayState } from './relay-circuit';
 import { RelayCanvas } from './relay-canvas';
 import { RelaySvg } from './relay-svg';
-import { MOTION, STILL, isSettling, relayView } from './relay-view';
+import { MOTION, STILL, isSettling, relayView, viewOf } from './relay-view';
 
 export type Renderer = 'svg' | 'canvas';
 
@@ -22,7 +22,8 @@ export class SignalRelayExperiment {
   protected readonly hintOpen = signal(false);
 
   private readonly state = signal<RelayState>(DARK);
-  private readonly from = signal<RelayState>(DARK);
+  /** What was on screen when the current change began. */
+  private readonly from = signal(viewOf(DARK));
   private readonly changedAt = signal(0);
   protected readonly now = signal(0);
 
@@ -48,9 +49,10 @@ export class SignalRelayExperiment {
   }
 
   private change(next: RelayState): void {
-    this.from.set(this.state());
-    this.state.set(next);
     const t = performance.now();
+    // Start from what is on screen right now, so a change that interrupts another carries on without a jump.
+    this.from.set(relayView(this.from(), this.state(), t - this.changedAt(), this.timing));
+    this.state.set(next);
     this.changedAt.set(t);
     this.now.set(t);
     this.run();

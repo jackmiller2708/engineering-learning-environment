@@ -1,8 +1,15 @@
 <div class="worlds">
-  <nav class="rail" aria-label="Worlds">
+  <div class="rail">
+  <nav aria-label="Worlds">
     <h2>Worlds</h2>
     <a routerLink="/worlds" aria-current="page">Computer Foundations</a>
   </nav>
+  <!-- Temporary: delete this block (and .experiment in the CSS) when the signal-relay experiment has been reviewed. -->
+  <aside class="experiment">
+    <span>Experiment</span>
+    <a routerLink="/experiments/signal-relay">Signal relay</a>
+  </aside>
+  </div>
   <main [attr.aria-busy]="list().kind === 'loading'">
     <h1 #heading tabindex="-1">Computer Foundations</h1>
 

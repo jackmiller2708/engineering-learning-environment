@@ -71,6 +71,29 @@ describe('Worlds screen', () => {
       expect(q(h, 'h1')?.textContent).toBe('Computer Foundations');
     });
 
+    it('offers a temporary, clearly marked link to the signal-relay experiment, apart from the World navigation and the Labs', async () => {
+      const h = await mount(new FakeGateway(), '/worlds');
+      await settle(h);
+      const entry = q<HTMLAnchorElement>(h, '.experiment a')!;
+      expect(entry.textContent?.trim()).toBe('Signal relay');
+      expect(entry.getAttribute('href')).toBe('/experiments/signal-relay');
+      expect(q(h, '.experiment')!.textContent).toContain('Experiment');
+      expect(q(h, 'nav[aria-label="Worlds"]')!.contains(entry)).toBe(false);
+      expect(q(h, 'section[aria-labelledby="labs-heading"]')!.contains(entry)).toBe(false);
+    });
+
+    it('opens the experiment from that link, and the launch route and unknown addresses are unchanged', async () => {
+      const h = await mount(new FakeGateway(), '/worlds');
+      await settle(h);
+      q<HTMLAnchorElement>(h, '.experiment a')!.click();
+      await settle(h);
+      expect(h.fixture.debugElement.injector.get(Router).url).toBe('/experiments/signal-relay');
+      expect(q(h, 'h1')!.textContent).toBe('Remote relay');
+      await h.navigateByUrl('/no-such-place');
+      await settle(h);
+      expect(h.fixture.debugElement.injector.get(Router).url).toBe('/worlds');
+    });
+
     it('has no description line: the title is followed directly by the screen\'s content', async () => {
       const h = await mount(new FakeGateway(), '/worlds');
       await settle(h);

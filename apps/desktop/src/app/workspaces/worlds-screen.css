@@ -23,7 +23,7 @@
   font-weight: 600;
 }
 
-.rail a {
+.rail nav a {
   display: flex;
   align-items: center;
   min-block-size: 36px;
@@ -143,6 +143,31 @@ h1:focus-visible {
 }
 
 /* Below 900 px (DESIGN_SPEC 8): the rail becomes a strip above the content, and only the content scrolls. */
+/* Temporary entry to the signal-relay experiment; visibly apart from the Lab controls. */
+.experiment {
+  display: grid;
+  gap: 4px;
+  margin-block-start: 24px;
+  padding-block-start: 12px;
+  border-block-start: 1px dashed var(--rule);
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.experiment span {
+  margin-inline: 8px;
+  font-weight: 600;
+}
+
+.experiment a {
+  padding: 4px 8px;
+  border: 1px dashed var(--edge);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 0.8125rem;
+  text-decoration: none;
+}
+
 @media (max-width: 899px) {
   .worlds {
     grid-template-columns: minmax(0, 1fr);
@@ -158,7 +183,24 @@ h1:focus-visible {
     border-block-end: 1px solid var(--rule);
   }
 
+  .rail nav {
+    display: contents;
+  }
+
   .rail h2 {
+    margin: 0;
+  }
+
+  .experiment {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 0 auto;
+    padding: 0;
+    border: 0;
+  }
+
+  .experiment span {
     margin: 0;
   }
 

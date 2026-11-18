@@ -1,7 +1,9 @@
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SignalRelayExperiment } from './signal-relay-experiment';
 import { SWITCHES } from './relay-layout';
+import { viewOf, type RelayView } from './relay-view';
 
 const ONLINE = 'Beacon online. Outpost connection restored.';
 
@@ -147,6 +149,32 @@ describe('the relay experiment', () => {
     expect(checked).toEqual(['true', 'true']);
   });
 
+  it('shows the canvas focus ring for keyboard use only, never after a mouse press', async () => {
+    const h = await open();
+    await h.choose('Canvas');
+    const c = h.el.querySelector('canvas')!;
+    const ring = () =>
+      (h.fixture.debugElement.query(By.css('app-relay-canvas')).componentInstance as unknown as { ring(): boolean }).ring();
+    const r = SWITCHES.a;
+    // A mouse press focuses the canvas (as a browser does) and operates the switch: no ring.
+    c.dispatchEvent(new MouseEvent('pointerdown', { clientX: r.x + 5, clientY: r.y + 5, bubbles: true }));
+    c.dispatchEvent(new Event('focus'));
+    c.dispatchEvent(new MouseEvent('pointerup', { bubbles: true }));
+    expect(ring()).toBe(false);
+    // Leaving and tabbing back in is keyboard focus: ring.
+    c.dispatchEvent(new Event('blur'));
+    c.dispatchEvent(new Event('focus'));
+    expect(ring()).toBe(true);
+    // Using the arrow keys keeps it; a later press removes it.
+    c.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    expect(ring()).toBe(true);
+    c.dispatchEvent(new MouseEvent('pointerdown', { clientX: r.x + 5, clientY: r.y + 5, bubbles: true }));
+    expect(ring()).toBe(false);
+    // Keys after a press bring it back and still work: Space flips the selected switch.
+    c.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+    expect(ring()).toBe(true);
+  });
+
   it('ignores a canvas press away from the switches', async () => {
     const h = await open();
     await h.choose('Canvas');
@@ -173,5 +201,101 @@ describe('the relay experiment', () => {
     c.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     await h.settle();
     expect(h.status()).toBe(ONLINE);
+  });
+});
+
+describe('the relay experiment with motion on', () => {
+  let clock = 0;
+  // Angular schedules its own frames too, so keep every callback and run them all, not just the last.
+  let frames: FrameRequestCallback[] = [];
+
+  beforeEach(() => {
+    clock = 1000;
+    frames = [];
+    vi.stubGlobal('matchMedia', () => ({ matches: false, addEventListener() {}, removeEventListener() {} }));
+    vi.spyOn(performance, 'now').mockImplementation(() => clock);
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => (frames.push(cb), 1));
+    vi.stubGlobal('cancelAnimationFrame', () => {});
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation((() => context) as never);
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ left: 0, top: 0, width: 480, height: 260, right: 480, bottom: 260, x: 0, y: 0, toJSON() {} });
+  });
+
+  async function start() {
+    const fixture = TestBed.createComponent(SignalRelayExperiment);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const el = fixture.nativeElement as HTMLElement;
+    const view = () => (fixture.debugElement.query(By.css('app-relay-svg, app-relay-canvas')).componentInstance as { view(): RelayView }).view();
+    const flip = (label: string) => {
+      el.querySelector<SVGGElement>(`g.switch[aria-label="${label}"]`)!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      fixture.detectChanges();
+    };
+    /** Moves the clock to `ms` after the start and runs the animation frame that would fire. */
+    const at = (ms: number) => {
+      clock = 1000 + ms;
+      const due = frames;
+      frames = [];
+      due.forEach((cb) => cb(clock));
+      fixture.detectChanges();
+    };
+    const reset = () => {
+      [...el.querySelectorAll('button')].find((b) => b.textContent!.trim() === 'Reset')!.click();
+      fixture.detectChanges();
+    };
+    const choose = (name: 'SVG' | 'Canvas') => {
+      [...el.querySelectorAll<HTMLButtonElement>('.choice button')].find((b) => b.textContent!.trim() === name)!.click();
+      fixture.detectChanges();
+    };
+    return { view, flip, at, reset, choose, el };
+  }
+
+  it('does not jump when a second switch is flipped mid-propagation', async () => {
+    const h = await start();
+    h.flip('Line A');
+    h.at(140); // halfway along A's wire
+    const before = h.view();
+    expect(before.a).toBeCloseTo(0.5);
+    h.flip('Line B'); // interrupts at the same instant
+    const after = h.view();
+    expect(after.a).toBeCloseTo(before.a);
+    expect(after.knob).toEqual(before.knob);
+    expect(after.gate).toBe(before.gate);
+    expect(after.beacon).toBe(before.beacon);
+  });
+
+  it('settles into the view of the actual circuit after rapid flips', async () => {
+    const h = await start();
+    for (const [t, line] of [[0, 'Line A'], [60, 'Line B'], [130, 'Line A'], [200, 'Line A'], [250, 'Line B'], [310, 'Line B'], [350, 'Line A'], [400, 'Line B']] as const) {
+      h.at(t);
+      h.flip(line);
+    }
+    // Eight flips: A twice net 0 (A,A,A,A? count them) -> A flipped 4 times (off), B flipped 4 times (off).
+    h.at(5000);
+    expect(h.view()).toEqual(viewOf({ a: false, b: false }));
+  });
+
+  it('reset during propagation heads back to dark from what is shown, with no jump, and ends dark', async () => {
+    const h = await start();
+    h.flip('Line A');
+    h.flip('Line B');
+    h.at(200);
+    const shown = h.view();
+    h.reset();
+    const right = h.view();
+    expect(right.a).toBeCloseTo(shown.a);
+    expect(right.b).toBeCloseTo(shown.b);
+    h.at(200 + 5000);
+    expect(h.view()).toEqual(viewOf({ a: false, b: false }));
+  });
+
+  it('shows the same view in both renderers, mid-propagation', async () => {
+    const h = await start();
+    h.flip('Line A');
+    h.at(100);
+    const svg = JSON.stringify(h.view());
+    h.choose('Canvas');
+    expect(JSON.stringify(h.view())).toBe(svg);
+    h.at(100); // same instant: still the same view
+    expect(JSON.stringify(h.view())).toBe(svg);
   });
 });

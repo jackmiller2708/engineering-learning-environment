@@ -50,7 +50,7 @@ const LENGTH = { a: lengthOf(WIRES.a), b: lengthOf(WIRES.b), out: lengthOf(WIRES
   `,
   styles: `
     :host { display: block; inline-size: 100%; block-size: 100%; min-block-size: 0; }
-    svg { display: block; inline-size: 100%; block-size: 100%; }
+    svg { display: block; inline-size: 100%; block-size: 100%; user-select: none; }
     .wire { fill: none; stroke: var(--rule); stroke-width: 6; stroke-linejoin: round; stroke-linecap: round; }
     .lit { fill: none; stroke: var(--accent); stroke-width: 6; stroke-linejoin: round; stroke-linecap: butt; }
     .dot { fill: var(--on-accent); opacity: 0.9; }

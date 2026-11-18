@@ -20,10 +20,12 @@ type Theme = Record<(typeof THEME_TOKENS)[number], string>;
     role="group"
     aria-label="Relay circuit. Arrow keys choose a switch, Space or Enter flips it."
     (pointerdown)="press($event)"
+    (pointerup)="pointerDown = false"
+    (pointercancel)="pointerDown = false"
     (pointermove)="hover($event)"
     (keydown)="key($event)"
-    (focus)="focused.set(true)"
-    (blur)="focused.set(false)"
+    (focus)="onFocus()"
+    (blur)="ring.set(false)"
   ></canvas>`,
   styles: `
     :host { display: block; inline-size: 100%; block-size: 100%; min-block-size: 0; }
@@ -37,7 +39,9 @@ export class RelayCanvas {
   readonly toggled = output<Line>();
 
   private readonly canvas = viewChild.required<ElementRef<HTMLCanvasElement>>('canvas');
-  protected readonly focused = signal(false);
+  /** The keyboard focus ring: on after keyboard use or Tab, off after a pointer press. */
+  protected readonly ring = signal(false);
+  protected pointerDown = false;
   private readonly cursorLine = signal<Line>('a');
   private readonly size = signal<{ w: number; h: number; dpr: number }>({ w: VIEW.w, h: VIEW.h, dpr: 1 });
   private theme: Theme | null = null;
@@ -69,7 +73,7 @@ export class RelayCanvas {
         scheme?.removeEventListener?.('change', retheme);
       });
     });
-    effect(() => this.draw(this.view(), this.now(), this.flow(), this.size(), this.focused(), this.cursorLine()));
+    effect(() => this.draw(this.view(), this.now(), this.flow(), this.size(), this.ring(), this.cursorLine()));
   }
 
   // ---- input: the canvas knows nothing about its drawn shapes, so it finds them itself ----
@@ -87,7 +91,14 @@ export class RelayCanvas {
     return LINES.find((l) => inside(grow(SWITCHES[l], 6), x, y)) ?? null;
   }
 
+  protected onFocus(): void {
+    // A press focuses the canvas before anything else; only focus that did not come from a press is the keyboard's.
+    if (!this.pointerDown) this.ring.set(true);
+  }
+
   protected press(e: PointerEvent): void {
+    this.pointerDown = true;
+    this.ring.set(false);
     const line = this.lineAt(e);
     if (line) {
       this.cursorLine.set(line);
@@ -100,6 +111,7 @@ export class RelayCanvas {
   }
 
   protected key(e: KeyboardEvent): void {
+    if (e.key !== 'Tab') this.ring.set(true);
     if (e.key === ' ' || e.key === 'Enter') {
       e.preventDefault();
       this.toggled.emit(this.cursorLine());
