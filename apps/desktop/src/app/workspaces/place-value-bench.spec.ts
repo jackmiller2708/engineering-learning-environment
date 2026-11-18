@@ -43,10 +43,10 @@ describe('Place-value bench: the starting example', () => {
     expect(q(h, '.example')!.textContent).toBe('Starting example');
   });
 
-  it('adds no prediction, width, Clear or Inspector controls', async () => {
+  it('adds no prediction, width or Clear controls: only Bit switches and Position selectors', async () => {
     const h = await open();
     const names = [...root(h).querySelectorAll('button, input, select')].map((e) => e.getAttribute('aria-label') ?? e.textContent!.trim());
-    expect(names.filter((n) => !n.startsWith('Bit at Position'))).toEqual([]);
+    expect(names.filter((n) => !/^(Bit at|Inspect) Position/.test(n))).toEqual([]);
     expect(text(h)).not.toMatch(/predict|clear|width/i);
   });
 
@@ -153,5 +153,148 @@ describe('Place-value bench: accessibility markup', () => {
     b.click();
     await settle(h);
     expect(document.activeElement).toBe(bits(h)[1]);
+  });
+});
+
+const pos = (h: H, position: number) => q<HTMLButtonElement>(h, `button.pos[data-position="${position}"]`)!;
+const select = async (h: H, position: number) => {
+  pos(h, position).click();
+  await settle(h);
+};
+const inspector = (h: H) => q(h, 'section[aria-label="Inspector"]')!;
+/** The Inspector's property rows as { name: value }. */
+const props = (h: H) =>
+  Object.fromEntries([...inspector(h).querySelectorAll('dl > div')].map((r) => [r.querySelector('dt')!.textContent, r.querySelector('dd')!.textContent!.replace(/\s+/g, ' ').trim()]));
+const pattern = (h: H) => rowText(h, 'Bit').join('');
+
+describe('Inspector: nothing selected', () => {
+  it('is a neutral region with one line and no properties, and no Deselect button', async () => {
+    const h = await open();
+    expect(inspector(h).querySelector('h2')!.textContent).toBe('Inspector');
+    expect(inspector(h).textContent).toContain('Select a position to inspect it.');
+    expect(inspector(h).querySelector('dl')).toBeNull();
+    expect(inspector(h).querySelector('.deselect')).toBeNull();
+    expect(root(h).querySelectorAll('button.pos[aria-pressed="true"]')).toHaveLength(0);
+  });
+});
+
+describe('Inspector: selecting a Position', () => {
+  it('shows Position, Bit, Weight and Contribution with their actual values (Position 3 of 1011)', async () => {
+    const h = await open();
+    await select(h, 3);
+    expect(props(h)).toEqual({ Position: '3', Bit: '1', Weight: '23 = 8', Contribution: '1 × 8 = 8' });
+  });
+
+  it('shows a 0 Bit as contributing 0 (Position 2 of 1011)', async () => {
+    const h = await open();
+    await select(h, 2);
+    expect(props(h)).toEqual({ Position: '2', Bit: '0', Weight: '22 = 4', Contribution: '0 × 4 = 0' });
+    expect(inspector(h).querySelector('.why')!.textContent!.trim()).toBe('A 0 contributes 0.');
+  });
+
+  it('explains a 1 as contributing its full Weight and states how Weight and Contribution arise', async () => {
+    const h = await open();
+    await select(h, 0);
+    expect(inspector(h).querySelector('.why')!.textContent!.trim()).toBe('A 1 contributes its full Weight.');
+    expect(inspector(h).textContent).toContain('The Weight comes from the Position. The Contribution is the Bit times the Weight.');
+  });
+
+  it('does not change the pattern, the Total, the sum, the label or the announcement', async () => {
+    const h = await open();
+    await select(h, 2);
+    expect(pattern(h)).toBe('1011');
+    expect(total(h)).toBe('11');
+    expect(q(h, '.sum')!.textContent).toBe('8 + 0 + 2 + 1 = 11');
+    expect(q(h, '.example')).not.toBeNull(); // selecting is not changing a Bit
+    expect(q(h, '.last')!.textContent).toBe('');
+  });
+
+  it('marks the selected Position with aria-pressed and a boxed column, and only one at a time', async () => {
+    const h = await open();
+    await select(h, 2);
+    expect(pos(h, 2).getAttribute('aria-pressed')).toBe('true');
+    expect(root(h).querySelectorAll('button.pos[aria-pressed="true"]')).toHaveLength(1);
+    expect([...root(h).querySelectorAll('td.sel')].map((c) => c.textContent!.trim())).toEqual(['2', '4', '0', '0']);
+  });
+
+  it('switches to another Position without changing any Bit', async () => {
+    const h = await open();
+    await select(h, 3);
+    await select(h, 1);
+    expect(props(h)).toEqual({ Position: '1', Bit: '1', Weight: '21 = 2', Contribution: '1 × 2 = 2' });
+    expect(pos(h, 3).getAttribute('aria-pressed')).toBe('false');
+    expect(pattern(h)).toBe('1011');
+    expect(total(h)).toBe('11');
+  });
+
+  it('is cleared by selecting the same Position again, and by Deselect, without changing the pattern', async () => {
+    const h = await open();
+    await select(h, 2);
+    await select(h, 2);
+    expect(inspector(h).querySelector('dl')).toBeNull();
+    await select(h, 2);
+    q<HTMLButtonElement>(h, '.deselect')!.click();
+    await settle(h);
+    expect(inspector(h).querySelector('dl')).toBeNull();
+    expect(root(h).querySelectorAll('td.sel')).toHaveLength(0);
+    expect(pattern(h)).toBe('1011');
+  });
+
+  it('returns focus to the Position button when Deselect removes itself', async () => {
+    const h = await open();
+    await select(h, 2);
+    q<HTMLButtonElement>(h, '.deselect')!.click();
+    await settle(h);
+    expect(document.activeElement).toBe(pos(h, 2));
+  });
+});
+
+describe('Inspector: staying in step with the Bench', () => {
+  it('keeps the Position selected and updates its Bit and Contribution when that Bit is toggled', async () => {
+    const h = await open();
+    await select(h, 2);
+    await flip(h, 2); // 0 -> 1
+    expect(pos(h, 2).getAttribute('aria-pressed')).toBe('true');
+    expect(props(h)).toEqual({ Position: '2', Bit: '1', Weight: '22 = 4', Contribution: '1 × 4 = 4' });
+    expect(inspector(h).querySelector('.why')!.textContent!.trim()).toBe('A 1 contributes its full Weight.');
+    expect(total(h)).toBe('15');
+    expect(q(h, '.sum')!.textContent).toBe('8 + 4 + 2 + 1 = 15');
+    await flip(h, 2); // 1 -> 0
+    expect(props(h)['Contribution']).toBe('0 × 4 = 0');
+    expect(total(h)).toBe('11');
+  });
+
+  it('is unaffected when a different Bit is toggled', async () => {
+    const h = await open();
+    await select(h, 3);
+    await flip(h, 0);
+    expect(props(h)).toEqual({ Position: '3', Bit: '1', Weight: '23 = 8', Contribution: '1 × 8 = 8' });
+    expect(total(h)).toBe('10');
+  });
+
+  it('toggling a Bit does not select it, and selecting a Position does not toggle it', async () => {
+    const h = await open();
+    await flip(h, 1);
+    expect(inspector(h).querySelector('dl')).toBeNull();
+    await select(h, 1);
+    expect(pattern(h)).toBe('1001');
+  });
+
+  it('starts with nothing selected when the Lab is opened again', async () => {
+    const h = await open();
+    await select(h, 3);
+    await h.navigateByUrl('/worlds');
+    await settle(h);
+    await h.navigateByUrl(`/workspace/${ID_A}`);
+    await settle(h);
+    expect(inspector(h).querySelector('dl')).toBeNull();
+    expect(root(h).querySelectorAll('button.pos[aria-pressed="true"]')).toHaveLength(0);
+  });
+
+  it('passes the learner-copy scan and draws no Library or Investigation region', async () => {
+    const h = await open();
+    await select(h, 3);
+    expect(violations(rendered(root(h)))).toEqual([]);
+    expect(root(h).querySelectorAll('[aria-label="Library"], [aria-label="Investigation"]')).toHaveLength(0);
   });
 });

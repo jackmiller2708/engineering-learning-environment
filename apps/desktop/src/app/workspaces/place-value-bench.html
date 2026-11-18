@@ -13,19 +13,30 @@
       <tr>
         <th scope="row">Position</th>
         @for (c of cells(); track c.position) {
-          <td [class.just]="justChanged(c.position)">{{ c.position }}</td>
+          <td [class.just]="justChanged(c.position)" [class.sel]="selected() === c.position">
+            <button
+              type="button"
+              class="pos"
+              [attr.data-position]="c.position"
+              [attr.aria-pressed]="selected() === c.position"
+              [attr.aria-label]="'Inspect Position ' + c.position"
+              (click)="select(c.position)"
+            >
+              {{ c.position }}
+            </button>
+          </td>
         }
       </tr>
       <tr>
         <th scope="row">Weight</th>
         @for (c of cells(); track c.position) {
-          <td [class.just]="justChanged(c.position)">{{ c.weight }}</td>
+          <td [class.just]="justChanged(c.position)" [class.sel]="selected() === c.position">{{ c.weight }}</td>
         }
       </tr>
       <tr>
         <th scope="row">Bit</th>
         @for (c of cells(); track c.position) {
-          <td [class.just]="justChanged(c.position)">
+          <td [class.just]="justChanged(c.position)" [class.sel]="selected() === c.position">
             <button
               type="button"
               class="bit"
@@ -41,7 +52,7 @@
       <tr>
         <th scope="row">Contribution</th>
         @for (c of cells(); track c.position) {
-          <td [class.just]="justChanged(c.position)">{{ c.contribution }}</td>
+          <td [class.just]="justChanged(c.position)" [class.sel]="selected() === c.position">{{ c.contribution }}</td>
         }
       </tr>
     </tbody>
@@ -54,3 +65,26 @@
   <!-- Polite live region, present from the start and empty until a Bit changes. -->
   <p class="last" aria-live="polite" aria-atomic="true">{{ announcement() }}</p>
 </div>
+
+<section class="inspector" aria-label="Inspector">
+  <h2>Inspector</h2>
+  @if (inspected(); as c) {
+    <dl>
+      <div><dt>Position</dt><dd>{{ c.position }}</dd></div>
+      <div><dt>Bit</dt><dd>{{ c.bit }}</dd></div>
+      <div><dt>Weight</dt><dd>2<sup>{{ c.position }}</sup> = {{ c.weight }}</dd></div>
+      <div><dt>Contribution</dt><dd>{{ c.bit }} × {{ c.weight }} = {{ c.contribution }}</dd></div>
+    </dl>
+    <p>The Weight comes from the Position. The Contribution is the Bit times the Weight.</p>
+    <p class="why">
+      @if (c.bit === 1) {
+        A 1 contributes its full Weight.
+      } @else {
+        A 0 contributes 0.
+      }
+    </p>
+    <button type="button" class="deselect" (click)="deselect()">Deselect</button>
+  } @else {
+    <p class="empty">Select a position to inspect it.</p>
+  }
+</section>

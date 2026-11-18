@@ -1,11 +1,20 @@
 :host {
-  display: block;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 16px;
+  box-sizing: border-box;
+  max-inline-size: 960px;
+  margin: 0 auto;
+  padding: 16px;
 }
 
+/* Side by side when there is room, stacked when there is not. */
 .board {
+  flex: 1 1 400px;
+  min-inline-size: 0;
   box-sizing: border-box;
-  max-inline-size: 640px;
-  margin: 16px auto;
+  margin: 0;
   padding: 16px;
   background: var(--panel);
   border: 1px solid var(--edge);
@@ -124,4 +133,86 @@
   min-block-size: 1.5em;
   margin: 6px 0 0;
   font-size: 0.8125rem;
+}
+
+/* Inspecting a Position: a box around its column (a shape cue, not colour alone). */
+.places td.sel {
+  border-inline: 2px solid var(--accent);
+}
+
+.pos {
+  box-sizing: border-box;
+  min-inline-size: 32px;
+  block-size: 28px;
+  padding: 0 8px;
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.pos[aria-pressed='true'] {
+  border: 2px solid var(--accent);
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.inspector {
+  flex: 1 1 240px;
+  max-inline-size: 320px;
+  box-sizing: border-box;
+  padding: 16px;
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  border-radius: 6px;
+}
+
+.inspector h2 {
+  margin: 0 0 8px;
+  font-size: 0.875rem;
+}
+
+.inspector dl {
+  margin: 0 0 8px;
+}
+
+.inspector dl > div {
+  display: grid;
+  grid-template-columns: 6.5rem minmax(0, 1fr);
+  padding: 3px 0;
+  border-block-end: 1px solid var(--rule);
+}
+
+.inspector dt {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.inspector dd {
+  margin: 0;
+  font-family: var(--mono);
+}
+
+.inspector p {
+  margin: 0 0 6px;
+  font-size: 0.8125rem;
+}
+
+.inspector .empty {
+  color: var(--muted);
+}
+
+.deselect {
+  block-size: 28px;
+  padding: 0 12px;
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  border-radius: 4px;
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
 }
