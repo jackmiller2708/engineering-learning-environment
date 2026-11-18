@@ -1,0 +1,29 @@
+<header class="intro">
+  <div class="title">
+    <h1>Remote relay</h1>
+    <p class="status" [class.online]="online()">{{ online() ? 'Beacon online. Outpost connection restored.' : 'Signal lost' }}</p>
+  </div>
+  <p class="situation">An outpost beacon has gone dark. Two supply lines feed its relay. Restore the signal.</p>
+</header>
+
+<div class="stage">
+  @if (renderer() === 'svg') {
+    <app-relay-svg [view]="view()" [now]="now()" [flow]="flow" (toggled)="toggle($event)" />
+  } @else {
+    <app-relay-canvas [view]="view()" [now]="now()" [flow]="flow" (toggled)="toggle($event)" />
+  }
+</div>
+
+<footer class="tools">
+  <button type="button" (click)="reset()">Reset</button>
+  <button type="button" [attr.aria-expanded]="hintOpen()" (click)="hintOpen.set(!hintOpen())">Hint</button>
+  @if (hintOpen()) {
+    <span class="hint">Try every combination of the two switches.</span>
+  }
+  <span class="spacer"></span>
+  <span class="experiment">Renderer experiment</span>
+  <span class="choice" role="group" aria-label="Renderer">
+    <button type="button" [attr.aria-pressed]="renderer() === 'svg'" (click)="renderer.set('svg')">SVG</button>
+    <button type="button" [attr.aria-pressed]="renderer() === 'canvas'" (click)="renderer.set('canvas')">Canvas</button>
+  </span>
+</footer>
