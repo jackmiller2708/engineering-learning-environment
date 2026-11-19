@@ -223,9 +223,34 @@
   font-size: 0.8125rem;
 }
 
-/* Inspecting a Position: a box around its column (a shape cue, not colour alone). */
+/* Inspecting a Position: a light neutral tint down its column (background-image, so .just keeps its own
+   background colour), with corner brackets at the top of the Position row and the bottom of the
+   Contribution row (a shape cue, not colour alone). */
 .places td.sel {
-  border-inline: 2px solid var(--accent);
+  background-image: linear-gradient(
+    color-mix(in oklab, var(--text) 9%, transparent),
+    color-mix(in oklab, var(--text) 9%, transparent)
+  );
+}
+
+.places tr:first-child td.sel {
+  background-image:
+    linear-gradient(var(--text), var(--text)), linear-gradient(var(--text), var(--text)),
+    linear-gradient(var(--text), var(--text)), linear-gradient(var(--text), var(--text)),
+    linear-gradient(color-mix(in oklab, var(--text) 9%, transparent), color-mix(in oklab, var(--text) 9%, transparent));
+  background-position: left 0 top 2px, left 0 top 2px, right 0 top 2px, right 0 top 2px, 0 0;
+  background-size: 9px 2px, 2px 10px, 9px 2px, 2px 10px, auto;
+  background-repeat: no-repeat;
+}
+
+.places tr:last-child td.sel {
+  background-image:
+    linear-gradient(var(--text), var(--text)), linear-gradient(var(--text), var(--text)),
+    linear-gradient(var(--text), var(--text)), linear-gradient(var(--text), var(--text)),
+    linear-gradient(color-mix(in oklab, var(--text) 9%, transparent), color-mix(in oklab, var(--text) 9%, transparent));
+  background-position: left 0 bottom 0, left 0 bottom 0, right 0 bottom 0, right 0 bottom 0, 0 0;
+  background-size: 9px 2px, 2px 10px, 9px 2px, 2px 10px, auto;
+  background-repeat: no-repeat;
 }
 
 .pos {
@@ -242,7 +267,7 @@
 }
 
 .pos[aria-pressed='true'] {
-  border: 2px solid var(--accent);
+  border: 2px solid var(--text);
   font-weight: 700;
   text-decoration: underline;
 }
