@@ -64,6 +64,18 @@ describe('App shell', () => {
     expect(li[0]!.querySelector('[aria-current="page"]')).not.toBeNull();
   });
 
+  it('on the Signal Relay experiment Worlds is a link to /worlds, and following it reaches Worlds', async () => {
+    const el = await shell('/experiments/signal-relay');
+    const li = items(el);
+    expect(li.map((x) => x.textContent?.trim())).toEqual(['Worlds']);
+    const link = li[0]!.querySelector<HTMLAnchorElement>('a.crumb')!;
+    expect(link.getAttribute('href')).toBe('/worlds');
+    expect(el.querySelector('nav[aria-label="You are here"] [aria-current]')).toBeNull();
+    link.click();
+    await flush();
+    expect(TestBed.inject(Router).url).toBe('/worlds');
+  });
+
   it('in a lab: Worlds is a link, the world is plain text, the lab is the current page', async () => {
     const el = await shell(`/workspace/${ID_A}`);
     const nav = el.querySelector('nav[aria-label="You are here"]')!;

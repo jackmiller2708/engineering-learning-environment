@@ -3,10 +3,12 @@
   <span class="brand">{{ appName }}</span>
   <nav aria-label="You are here">
     <ol>
-      @if (labId() === null) {
+      @if (atWorlds()) {
         <li><span class="crumb" aria-current="page">Worlds</span></li>
       } @else {
         <li><a class="crumb" routerLink="/worlds">Worlds</a></li>
+      }
+      @if (labId() !== null) {
         <li><span class="sep" aria-hidden="true">/</span><span class="crumb">{{ worldName }}</span></li>
         @if (lab(); as l) {
           <li>

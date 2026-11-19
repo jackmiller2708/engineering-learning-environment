@@ -23,6 +23,11 @@ export class App {
   protected readonly shortId = shortId;
 
   private readonly url = toSignal(this.router.events.pipe(map(() => this.router.url)), { initialValue: this.router.url });
+  /** On Worlds (or the launch screen that leads to it), "Worlds" is the current page. On any other screen it is a link. */
+  protected readonly atWorlds = computed(() => {
+    this.url();
+    return /^\/(worlds)?([?#]|$)/.test(this.router.url);
+  });
   /** The lab id in the address, or null on any other screen. */
   protected readonly labId = computed(() => {
     this.url();
